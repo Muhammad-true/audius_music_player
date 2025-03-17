@@ -1,3 +1,6 @@
+*.log
+.dart_tool/
+.idea/
 # Miscellaneous
 *.class
 *.log
