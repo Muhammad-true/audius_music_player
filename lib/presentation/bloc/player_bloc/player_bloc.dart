@@ -108,9 +108,20 @@ class PlayerBloc extends Bloc<PlayerEvent, PlayerState> {
     Emitter<PlayerState> emit,
   ) async {
     try {
+      print(
+          "Получено событие PlayTrack для трека: ${event.track.title}"); // Проверка
+      // Если трека нет в плейлисте, добавляем
+      if (!_playlist.any((track) => track.id == event.track.id)) {
+        _playlist.add(event.track);
+        print("Трек ${event.track.title} добавлен в плейлист");
+      }
       _currentIndex =
           _playlist.indexWhere((track) => track.id == event.track.id);
-      if (_currentIndex == -1) return;
+      print("Текущий индекс в плейлисте: $_currentIndex");
+      if (_currentIndex == -1) {
+        print("Ошибка: трек не найден в плейлисте!");
+        return;
+      }
 
       emit(PlayerLoading(track: event.track));
 
@@ -120,6 +131,7 @@ class PlayerBloc extends Bloc<PlayerEvent, PlayerState> {
           duration: audioPlayer.duration ?? Duration.zero));
 
       await audioPlayer.setUrl(streamUrl);
+
       await audioPlayer.play();
     } catch (e) {
       emit(PlayerError(e.toString()));
@@ -135,10 +147,8 @@ class PlayerBloc extends Bloc<PlayerEvent, PlayerState> {
 
       // Проверяем, что state всё ещё PlayerPlaying
       if (state is PlayerPlaying) {
-        final currentTrack = (state as PlayerPlaying).track;
-
         emit(PlayerPaused(
-          currentTrack,
+          event.track,
           position: audioPlayer.position,
           duration: audioPlayer.duration ?? Duration.zero,
         ));
@@ -214,7 +224,7 @@ class PlayerBloc extends Bloc<PlayerEvent, PlayerState> {
         await storageService.saveFavoriteTrack(event.track.id);
       }
 
-      // Обновляем текущее состояние с новым статусом избранного
+      // Обновляем список треков (если он загружен)
       if (state is TracksLoaded) {
         final tracks = (state as TracksLoaded).tracks.map((track) {
           if (track.id == event.track.id) {
@@ -223,6 +233,18 @@ class PlayerBloc extends Bloc<PlayerEvent, PlayerState> {
           return track;
         }).toList();
         emit(TracksLoaded(tracks));
+      }
+
+      // Обновляем текущий трек, если он сейчас играет
+      if (state is PlayerPlaying) {
+        final currentState = state as PlayerPlaying;
+        if (currentState.track.id == event.track.id) {
+          final updatedTrack = currentState.track
+              .copyWith(isFavorite: !currentState.track.isFavorite);
+          emit(PlayerPlaying(updatedTrack,
+              position: currentState.position,
+              duration: currentState.duration));
+        }
       }
     } catch (e) {
       emit(PlayerError(e.toString()));

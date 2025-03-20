@@ -55,7 +55,10 @@ class MyApp extends StatelessWidget {
             )..add(LoadTrendingTracks()),
           ),
           BlocProvider(
-            create: (context) => SearchBloc(repository),
+            create: (context) => SearchBloc(
+              storageService: storageService,
+              repository: repository,
+            ),
           ),
         ],
         child: MaterialApp(

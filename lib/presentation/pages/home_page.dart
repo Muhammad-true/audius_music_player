@@ -1,7 +1,10 @@
 import 'dart:async';
 
 import 'package:audius_music_player/data/models/track_model.dart';
-import 'package:audius_music_player/presentation/bloc/player_bloc/player_bloc.dart';
+import 'package:audius_music_player/presentation/bloc/player_bloc/player_bloc.dart'
+    as player_bloc;
+import 'package:audius_music_player/presentation/bloc/search_bloc/search_bloc.dart'
+    as search_bloc;
 import 'package:audius_music_player/presentation/pages/player_page.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
@@ -27,9 +30,13 @@ class _HomePageState extends State<HomePage> {
     if (_debounce?.isActive ?? false) _debounce!.cancel();
     _debounce = Timer(const Duration(milliseconds: 500), () {
       if (query.isEmpty) {
-        context.read<PlayerBloc>().add(LoadTrendingTracks());
+        context
+            .read<player_bloc.PlayerBloc>()
+            .add(player_bloc.LoadTrendingTracks());
       } else {
-        context.read<PlayerBloc>().add(SearchTracks(query));
+        context
+            .read<search_bloc.SearchBloc>()
+            .add(search_bloc.SearchTracks(query));
       }
     });
   }
@@ -46,7 +53,9 @@ class _HomePageState extends State<HomePage> {
             Expanded(
               child: RefreshIndicator(
                 onRefresh: () async {
-                  context.read<PlayerBloc>().add(LoadTrendingTracks());
+                  context
+                      .read<player_bloc.PlayerBloc>()
+                      .add(player_bloc.LoadTrendingTracks());
                 },
                 child: _buildContent(),
               ),
@@ -110,7 +119,9 @@ class _HomePageState extends State<HomePage> {
                   icon: Icon(Icons.clear),
                   onPressed: () {
                     _searchController.clear();
-                    context.read<PlayerBloc>().add(LoadTrendingTracks());
+                    context
+                        .read<search_bloc.SearchBloc>()
+                        .add(search_bloc.ClearSearch());
                   },
                 )
               : null,
@@ -122,68 +133,90 @@ class _HomePageState extends State<HomePage> {
   }
 
   Widget _buildContent() {
-    return BlocBuilder<PlayerBloc, PlayerState>(
-      builder: (context, state) {
-        if (state is PlayerLoading) {
-          return Center(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                CircularProgressIndicator(),
-                SizedBox(height: 16),
-                Text('Loading tracks...'),
-              ],
-            ),
-          );
-        }
+    return BlocBuilder<search_bloc.SearchBloc, search_bloc.SearchState>(
+        builder: (context, searchState) {
+      if (searchState is search_bloc.SearchLoading) {
+        return Center(child: CircularProgressIndicator());
+      }
 
-        if (state is PlayerError) {
-          return Center(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(Icons.error_outline, size: 48, color: Colors.red),
-                SizedBox(height: 16),
-                Text(
-                  'Error loading tracks:',
-                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                ),
-                SizedBox(height: 8),
-                Padding(
-                  padding: EdgeInsets.symmetric(horizontal: 32),
-                  child: Text(
-                    state.message,
-                    textAlign: TextAlign.center,
-                  ),
-                ),
-                SizedBox(height: 16),
-                ElevatedButton(
-                  onPressed: () {
-                    context.read<PlayerBloc>().add(LoadTrendingTracks());
-                  },
-                  child: Text('Try Again'),
-                ),
-              ],
-            ),
-          );
-        }
+      if (searchState is search_bloc.SearchError) {
+        return Center(child: Text('Ошибка: ${searchState.message}'));
+      }
 
-        if (state is TracksLoaded) {
-          if (state.tracks.isEmpty) {
+      if (searchState is search_bloc.SearchSuccess) {
+        if (searchState.tracks.isEmpty) {
+          return Center(child: Text('Ничего не найдено'));
+        }
+        return ListView(
+          children: [_buildTrendingSection(searchState.tracks)],
+        );
+      }
+
+      return BlocBuilder<player_bloc.PlayerBloc, player_bloc.PlayerState>(
+        builder: (context, state) {
+          if (state is player_bloc.PlayerLoading) {
             return Center(
-              child: Text('No tracks found'),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  CircularProgressIndicator(),
+                  SizedBox(height: 16),
+                  Text('Loading tracks...'),
+                ],
+              ),
             );
           }
-          return ListView(
-            children: [
-              _buildTrendingSection(state.tracks),
-            ],
-          );
-        }
 
-        return SizedBox();
-      },
-    );
+          if (state is player_bloc.PlayerError) {
+            return Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(Icons.error_outline, size: 48, color: Colors.red),
+                  SizedBox(height: 16),
+                  Text(
+                    'Error loading tracks:',
+                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                  ),
+                  SizedBox(height: 8),
+                  Padding(
+                    padding: EdgeInsets.symmetric(horizontal: 32),
+                    child: Text(
+                      state.message,
+                      textAlign: TextAlign.center,
+                    ),
+                  ),
+                  SizedBox(height: 16),
+                  ElevatedButton(
+                    onPressed: () {
+                      context
+                          .read<player_bloc.PlayerBloc>()
+                          .add(player_bloc.LoadTrendingTracks());
+                    },
+                    child: Text('Try Again'),
+                  ),
+                ],
+              ),
+            );
+          }
+
+          if (state is player_bloc.TracksLoaded) {
+            if (state.tracks.isEmpty) {
+              return const Center(
+                child: Text('No tracks found'),
+              );
+            } else if (_searchController.text.isEmpty)
+              return ListView(
+                children: [
+                  _buildTrendingSection(state.tracks),
+                ],
+              );
+          }
+
+          return SizedBox();
+        },
+      );
+    });
   }
 
   Widget _buildTrendingSection(List<TrackModel> tracks) {
@@ -216,7 +249,13 @@ class _HomePageState extends State<HomePage> {
   Widget _buildTrackCard(TrackModel track) {
     return GestureDetector(
       onTap: () {
-        context.read<PlayerBloc>().add(PlayTrack(track));
+        final playerBloc = context.read<player_bloc.PlayerBloc>();
+        print("Нашёл PlayerBloc: $playerBloc");
+        print("Нашёл Trak: $track");
+        print("Нашёл context: $context");
+        context
+            .read<player_bloc.PlayerBloc>()
+            .add(player_bloc.PlayTrack(track));
         Navigator.push(
           context,
           MaterialPageRoute(
@@ -279,13 +318,14 @@ class _HomePageState extends State<HomePage> {
   }
 
   Widget _buildMiniPlayer() {
-    return BlocBuilder<PlayerBloc, PlayerState>(
+    return BlocBuilder<player_bloc.PlayerBloc, player_bloc.PlayerState>(
       builder: (context, state) {
-        if (state is PlayerPlaying || state is PlayerPaused) {
-          final track = state is PlayerPlaying
-              ? (state as PlayerPlaying).track
-              : (state as PlayerPaused).track;
-          final isPlaying = state is PlayerPlaying;
+        if (state is player_bloc.PlayerPlaying ||
+            state is player_bloc.PlayerPaused) {
+          final track = state is player_bloc.PlayerPlaying
+              ? (state as player_bloc.PlayerPlaying).track
+              : (state as player_bloc.PlayerPaused).track;
+          final isPlaying = state is player_bloc.PlayerPlaying;
 
           return GestureDetector(
             onTap: () {
@@ -345,9 +385,13 @@ class _HomePageState extends State<HomePage> {
                     icon: Icon(isPlaying ? Icons.pause : Icons.play_arrow),
                     onPressed: () {
                       if (isPlaying) {
-                        context.read<PlayerBloc>().add(PauseTrack());
+                        context
+                            .read<player_bloc.PlayerBloc>()
+                            .add(player_bloc.PauseTrack(track: track));
                       } else {
-                        context.read<PlayerBloc>().add(ResumeTrack());
+                        context
+                            .read<player_bloc.PlayerBloc>()
+                            .add(player_bloc.ResumeTrack());
                       }
                     },
                   ),

@@ -4,7 +4,10 @@ abstract class SearchState {}
 
 class SearchInitial extends SearchState {}
 
-class SearchLoading extends SearchState {}
+class SearchLoading extends SearchState {
+  final TrackModel track;
+  SearchLoading(this.track);
+}
 
 class SearchSuccess extends SearchState {
   final List<TrackModel> tracks;

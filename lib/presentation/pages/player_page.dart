@@ -44,7 +44,7 @@ class PlayerPage extends StatelessWidget {
             final track = trackState.track;
             final position = trackState.position;
             final duration = trackState.duration;
-
+            final isPlaying = state is PlayerPlaying;
             return Scaffold(
               backgroundColor: Theme.of(context).scaffoldBackgroundColor,
               body: SafeArea(
@@ -58,7 +58,7 @@ class PlayerPage extends StatelessWidget {
                           _buildArtwork(track),
                           _buildTrackInfo(track),
                           _buildProgressBar(context, position, duration),
-                          _buildControls(context),
+                          _buildControls(context, isPlaying, track),
                           _buildAdditionalControls(context, track),
                         ],
                       ),
@@ -197,57 +197,61 @@ class PlayerPage extends StatelessWidget {
     }
   }
 
-  Widget _buildControls(BuildContext context) {
-    return BlocBuilder<PlayerBloc, PlayerState>(
-      builder: (context, state) {
-        final bool isPlaying = state is PlayerPlaying;
-
-        return Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            IconButton(icon: const Icon(Icons.shuffle), onPressed: () {}),
-            IconButton(
-                icon: const Icon(Icons.skip_previous),
-                iconSize: 40,
-                onPressed: () {
-                  context.read<PlayerBloc>().add(PreviousTrack());
-                }),
-            Container(
-              width: 70,
-              height: 70,
-              decoration: const BoxDecoration(
-                  shape: BoxShape.circle, color: Colors.blue),
-              child: IconButton(
-                icon: Icon(isPlaying ? Icons.pause : Icons.play_arrow,
-                    size: 40, color: Colors.white),
-                onPressed: () {
-                  debugPrint('Toggle Play/Pause: isPlaying=$isPlaying');
-                  context
-                      .read<PlayerBloc>()
-                      .add(isPlaying ? PauseTrack() : ResumeTrack());
-                },
-              ),
-            ),
-            IconButton(
-                icon: const Icon(Icons.skip_next),
-                iconSize: 40,
-                onPressed: () {
-                  context.read<PlayerBloc>().add(NextTrack());
-                }),
-            IconButton(icon: const Icon(Icons.repeat), onPressed: () {}),
-          ],
-        );
-      },
+  Widget _buildControls(BuildContext context, bool isPlaying, TrackModel trak) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        IconButton(icon: const Icon(Icons.shuffle), onPressed: () {}),
+        IconButton(
+            icon: const Icon(Icons.skip_previous),
+            iconSize: 40,
+            onPressed: () {
+              context.read<PlayerBloc>().add(PreviousTrack());
+            }),
+        Container(
+          width: 70,
+          height: 70,
+          decoration:
+              const BoxDecoration(shape: BoxShape.circle, color: Colors.blue),
+          child: IconButton(
+            icon: Icon(isPlaying ? Icons.pause : Icons.play_arrow,
+                size: 40, color: Colors.white),
+            onPressed: () {
+              context
+                  .read<PlayerBloc>()
+                  .add(isPlaying ? PauseTrack(track: trak) : ResumeTrack());
+            },
+          ),
+        ),
+        IconButton(
+            icon: const Icon(Icons.skip_next),
+            iconSize: 40,
+            onPressed: () {
+              context.read<PlayerBloc>().add(NextTrack());
+            }),
+        IconButton(icon: const Icon(Icons.repeat), onPressed: () {}),
+      ],
     );
   }
 
   Widget _buildAdditionalControls(BuildContext context, TrackModel track) {
+    final isFavorite = context.select<PlayerBloc, bool>(
+      (bloc) => bloc.state is PlayerPlaying &&
+              (bloc.state as PlayerPlaying).track.id == track.id
+          ? (bloc.state as PlayerPlaying).track.isFavorite
+          : track.isFavorite,
+    );
+
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceEvenly,
       children: [
         IconButton(
-          icon: Icon(track.isFavorite ? Icons.favorite : Icons.favorite_border,
-              color: track.isFavorite ? Colors.red : null),
+          icon: Icon(
+            isFavorite ? Icons.favorite : Icons.favorite_border,
+            color: isFavorite
+                ? const Color.fromARGB(255, 255, 170, 163)
+                : Colors.grey,
+          ),
           onPressed: () {
             context.read<PlayerBloc>().add(ToggleFavorite(track));
           },

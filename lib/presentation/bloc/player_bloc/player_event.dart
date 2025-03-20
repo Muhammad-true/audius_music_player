@@ -15,7 +15,10 @@ class PlayTrack extends PlayerEvent {
   PlayTrack(this.track);
 }
 
-class PauseTrack extends PlayerEvent {}
+class PauseTrack extends PlayerEvent {
+  TrackModel track;
+  PauseTrack({required this.track});
+}
 
 class ResumeTrack extends PlayerEvent {}
 

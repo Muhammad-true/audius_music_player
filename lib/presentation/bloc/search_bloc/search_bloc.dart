@@ -1,4 +1,5 @@
 import 'package:audius_music_player/data/models/track_model.dart';
+import 'package:audius_music_player/data/services/storage_service.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../data/repositories/audius_repository.dart';
@@ -9,8 +10,11 @@ part 'search_state.dart';
 // BLoC для управления поиском
 class SearchBloc extends Bloc<SearchEvent, SearchState> {
   final AudiusRepository repository;
+  final StorageService storageService;
+  List<TrackModel> _playlist = [];
 
-  SearchBloc(this.repository) : super(SearchInitial()) {
+  SearchBloc({required this.storageService, required this.repository})
+      : super(SearchInitial()) {
     on<SearchTracks>(_onSearchTracks);
     on<ClearSearch>(_onClearSearch);
   }
@@ -24,10 +28,21 @@ class SearchBloc extends Bloc<SearchEvent, SearchState> {
       return;
     }
 
-    emit(SearchLoading());
+    emit(SearchLoading(TrackModel(
+        id: '',
+        title: '',
+        artistName: '',
+        coverArt: '',
+        audioUrl: '',
+        duration: 0)));
     try {
       final tracks = await repository.searchTracks(event.query);
-      emit(SearchSuccess(tracks));
+      _playlist = tracks.map((track) {
+        return track.copyWith(
+          isFavorite: storageService.isTrackFavorite(track.id),
+        );
+      }).toList();
+      emit(SearchSuccess(_playlist));
     } catch (e) {
       emit(SearchError(e.toString()));
     }

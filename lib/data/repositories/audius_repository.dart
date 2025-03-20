@@ -82,9 +82,8 @@ class AudiusRepository {
         throw Exception('Failed to search tracks.');
       }
 
-      return (response.data['data'] as List)
-          .map((json) => TrackModel.fromJson(json))
-          .toList();
+      final List<dynamic> data = response.data['data'];
+      return data.map((json) => TrackModel.fromJson(json)).toList();
     } catch (e) {
       print('Error searching tracks: $e');
       throw Exception('Failed to search tracks.');
