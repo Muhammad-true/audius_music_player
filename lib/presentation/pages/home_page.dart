@@ -5,6 +5,7 @@ import 'package:audius_music_player/presentation/bloc/player_bloc/player_bloc.da
     as player_bloc;
 import 'package:audius_music_player/presentation/bloc/search_bloc/search_bloc.dart'
     as search_bloc;
+import 'package:audius_music_player/presentation/pages/favorites_page.dart';
 import 'package:audius_music_player/presentation/pages/player_page.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
@@ -18,6 +19,7 @@ class HomePage extends StatefulWidget {
 class _HomePageState extends State<HomePage> {
   final TextEditingController _searchController = TextEditingController();
   Timer? _debounce;
+  List<TrackModel> _playlist = [];
 
   @override
   void dispose() {
@@ -63,7 +65,7 @@ class _HomePageState extends State<HomePage> {
           ],
         ),
       ),
-      bottomNavigationBar: _buildMiniPlayer(),
+      bottomNavigationBar: _buildMiniPlayer(_playlist),
     );
   }
 
@@ -85,14 +87,17 @@ class _HomePageState extends State<HomePage> {
               IconButton(
                 icon: Icon(Icons.favorite),
                 onPressed: () {
-                  // TODO: Navigate to favorites
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => FavoritesPage(),
+                    ),
+                  );
                 },
               ),
               IconButton(
                 icon: Icon(Icons.playlist_play),
-                onPressed: () {
-                  // TODO: Navigate to playlists
-                },
+                onPressed: () {},
               ),
             ],
           ),
@@ -239,27 +244,24 @@ class _HomePageState extends State<HomePage> {
             scrollDirection: Axis.horizontal,
             padding: EdgeInsets.symmetric(horizontal: 16),
             itemCount: tracks.length,
-            itemBuilder: (context, index) => _buildTrackCard(tracks[index]),
+            itemBuilder: (context, index) =>
+                _buildTrackCard(tracks[index], tracks),
           ),
         ),
       ],
     );
   }
 
-  Widget _buildTrackCard(TrackModel track) {
+  Widget _buildTrackCard(TrackModel track, List<TrackModel> tracks) {
     return GestureDetector(
       onTap: () {
-        final playerBloc = context.read<player_bloc.PlayerBloc>();
-        print("Нашёл PlayerBloc: $playerBloc");
-        print("Нашёл Trak: $track");
-        print("Нашёл context: $context");
         context
             .read<player_bloc.PlayerBloc>()
-            .add(player_bloc.PlayTrack(track));
+            .add(player_bloc.PlayTrack(track, tracks));
         Navigator.push(
           context,
           MaterialPageRoute(
-            builder: (context) => PlayerPage(),
+            builder: (context) => PlayerPage(tracks: tracks),
           ),
         );
       },
@@ -317,7 +319,7 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
-  Widget _buildMiniPlayer() {
+  Widget _buildMiniPlayer(List<TrackModel> tracks) {
     return BlocBuilder<player_bloc.PlayerBloc, player_bloc.PlayerState>(
       builder: (context, state) {
         if (state is player_bloc.PlayerPlaying ||
@@ -331,7 +333,8 @@ class _HomePageState extends State<HomePage> {
             onTap: () {
               Navigator.push(
                 context,
-                MaterialPageRoute(builder: (context) => PlayerPage()),
+                MaterialPageRoute(
+                    builder: (context) => PlayerPage(tracks: tracks)),
               );
             },
             child: Container(
@@ -389,9 +392,9 @@ class _HomePageState extends State<HomePage> {
                             .read<player_bloc.PlayerBloc>()
                             .add(player_bloc.PauseTrack(track: track));
                       } else {
-                        context
-                            .read<player_bloc.PlayerBloc>()
-                            .add(player_bloc.ResumeTrack());
+                        context.read<player_bloc.PlayerBloc>().add(
+                            player_bloc.ResumeTrack(
+                                tracks: List<TrackModel>.empty()));
                       }
                     },
                   ),

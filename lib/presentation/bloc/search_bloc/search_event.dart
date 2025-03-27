@@ -4,6 +4,7 @@ abstract class SearchEvent {}
 
 class SearchTracks extends SearchEvent {
   final String query;
+
   SearchTracks(this.query);
 }
 

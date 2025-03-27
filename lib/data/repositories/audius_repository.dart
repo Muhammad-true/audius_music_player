@@ -89,4 +89,25 @@ class AudiusRepository {
       throw Exception('Failed to search tracks.');
     }
   }
+
+  Future<TrackModel> getTrackDetails(String trackId) async {
+    if (_host == null) await initialize();
+
+    try {
+      final response = await _dio.get('$_host/v1/tracks/$trackId',
+          options: Options(
+            headers: {'Accept': 'application/json'},
+            responseType: ResponseType.json,
+          ));
+
+      if (response.statusCode == 200) {
+        return TrackModel.fromJson(response.data['data']);
+      } else {
+        throw Exception('Failed to load track details');
+      }
+    } catch (e) {
+      print('Error getting track details: $e');
+      throw Exception('Failed to get track details: $e');
+    }
+  }
 }

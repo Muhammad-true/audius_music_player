@@ -1,6 +1,7 @@
 import 'package:audius_music_player/core/theme/app_theme.dart';
 import 'package:audius_music_player/data/repositories/audius_repository.dart';
 import 'package:audius_music_player/data/services/storage_service.dart';
+import 'package:audius_music_player/presentation/bloc/favorites_bloc.dart/bloc/favorites_bloc.dart';
 import 'package:audius_music_player/presentation/bloc/player_bloc/player_bloc.dart';
 import 'package:audius_music_player/presentation/bloc/search_bloc/search_bloc.dart';
 import 'package:audius_music_player/presentation/pages/home_page.dart';
@@ -60,6 +61,9 @@ class MyApp extends StatelessWidget {
               repository: repository,
             ),
           ),
+          BlocProvider(
+              create: (context) => FavoritesBloc(
+                  storageService: storageService, repository: repository))
         ],
         child: MaterialApp(
           title: 'Audius Music Player',

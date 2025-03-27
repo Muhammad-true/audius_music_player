@@ -8,25 +8,30 @@ class StorageService {
 
   // Сохранение избранных треков
   Future<void> saveFavoriteTrack(String trackId) async {
-    final favorites = getFavoriteTracks();
+    final favorites =
+        await getFavoriteTracks(); // изменяем на асинхронный метод
     favorites.add(trackId);
     await _prefs.setStringList('favorites', favorites.toList());
   }
 
   // Получение списка избранных треков
-  Set<String> getFavoriteTracks() {
-    return _prefs.getStringList('favorites')?.toSet() ?? {};
+  Future<Set<String>> getFavoriteTracks() async {
+    final favorites = _prefs.getStringList('favorites') ?? [];
+    return favorites.toSet();
   }
 
   // Удаление трека из избранного
   Future<void> removeFavoriteTrack(String trackId) async {
-    final favorites = getFavoriteTracks();
+    final favorites =
+        await getFavoriteTracks(); // изменяем на асинхронный метод
     favorites.remove(trackId);
     await _prefs.setStringList('favorites', favorites.toList());
   }
 
   // Проверка, находится ли трек в избранном
-  bool isTrackFavorite(String trackId) {
-    return getFavoriteTracks().contains(trackId);
+  Future<bool> isTrackFavorite(String trackId) async {
+    final favorites =
+        await getFavoriteTracks(); // изменяем на асинхронный метод
+    return favorites.contains(trackId);
   }
 }

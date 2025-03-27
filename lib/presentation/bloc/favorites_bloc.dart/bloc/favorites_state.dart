@@ -1,0 +1,15 @@
+part of 'favorites_bloc.dart';
+
+@immutable
+sealed class FavoritesState {}
+
+final class FavoritesInitial extends FavoritesState {}
+
+class FavoritesLoading extends FavoritesState {}
+
+class FavoritesLoaded extends FavoritesState {
+  final List<TrackModel> favorites; // Assuming this is a Set
+
+  FavoritesLoaded(this.favorites);
+// Getter to convert Set to List
+}

@@ -37,11 +37,10 @@ class SearchBloc extends Bloc<SearchEvent, SearchState> {
         duration: 0)));
     try {
       final tracks = await repository.searchTracks(event.query);
-      _playlist = tracks.map((track) {
-        return track.copyWith(
-          isFavorite: storageService.isTrackFavorite(track.id),
-        );
-      }).toList();
+      _playlist = await Future.wait(tracks.map((track) async {
+        final isFavorite = await storageService.isTrackFavorite(track.id);
+        return track.copyWith(isFavorite: isFavorite);
+      }));
       emit(SearchSuccess(_playlist));
     } catch (e) {
       emit(SearchError(e.toString()));

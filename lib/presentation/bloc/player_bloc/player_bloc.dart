@@ -1,6 +1,5 @@
 import 'dart:async';
 
-import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:just_audio/just_audio.dart';
 
@@ -36,8 +35,6 @@ class PlayerBloc extends Bloc<PlayerEvent, PlayerState> {
     on<PreviousTrack>(_onPreviousTrack);
     on<UpdatePosition>(_onUpdatePosition);
     on<PlayerStateChanged>(_onPlayerStateChanged);
-
-    _setupAudioPlayer();
   }
 
   Future<void> _onLoadTrendingTracks(
@@ -51,32 +48,33 @@ class PlayerBloc extends Bloc<PlayerEvent, PlayerState> {
             artistName: '',
             coverArt: '',
             audioUrl: '',
-            duration: 0)));
+            duration: 0),
+        tracks: []));
     try {
       final tracks = await repository.getTrendingTracks();
-      _playlist = tracks.map((track) {
-        return track.copyWith(
-          isFavorite: storageService.isTrackFavorite(track.id),
-        );
-      }).toList();
+      _playlist = await Future.wait(tracks.map((track) async {
+        final isFavorite = await storageService.isTrackFavorite(track.id);
+        return track.copyWith(isFavorite: isFavorite);
+      }));
+
       emit(TracksLoaded(_playlist));
     } catch (e) {
       emit(PlayerError(e.toString()));
     }
   }
 
-  void _setupAudioPlayer() {
+  void _setupAudioPlayer(traks) {
     _playerStateSubscription =
         audioPlayer.playerStateStream.listen((playerState) {
       if (playerState.processingState == ProcessingState.completed) {
-        add(NextTrack());
+        add(NextTrack(tracks: traks)); // Используем _playlist
       } else {
         add(PlayerStateChanged(audioPlayer.playing));
       }
     });
 
     _positionSubscription = audioPlayer.positionStream.listen((position) {
-      if (state is PlayerPlaying) {
+      if (state is PlayerPlaying && audioPlayer.playing) {
         add(UpdatePosition(position));
       }
     });
@@ -86,19 +84,32 @@ class PlayerBloc extends Bloc<PlayerEvent, PlayerState> {
     PlayerStateChanged event,
     Emitter<PlayerState> emit,
   ) {
-    debugPrint("Player state changed: isPlaying=${event.isPlaying}");
-
     if (state is PlayerPlaying || state is PlayerPaused) {
       final currentTrack = (state as dynamic).track;
+      final currentTracks = (state as dynamic).tracks;
       final currentPosition = audioPlayer.position;
       final currentDuration = audioPlayer.duration ?? Duration.zero;
 
       if (event.isPlaying) {
-        emit(PlayerPlaying(currentTrack,
-            position: currentPosition, duration: currentDuration));
+        emit(PlayerPlaying(
+          currentTrack,
+          tracks: currentTracks,
+          position: currentPosition,
+          duration: currentDuration,
+        ));
       } else {
-        emit(PlayerPaused(currentTrack,
-            position: currentPosition, duration: currentDuration));
+        if (state is PlayerPaused) {
+          emit(PlayerPaused(currentTrack,
+              position: currentPosition,
+              duration: currentDuration,
+              tracks: currentTracks // Без приведения!
+              ));
+        } else if (state is PlayerPlaying) {
+          emit(PlayerPaused(currentTrack,
+              position: currentPosition,
+              duration: currentDuration,
+              tracks: currentTracks));
+        }
       }
     }
   }
@@ -108,31 +119,37 @@ class PlayerBloc extends Bloc<PlayerEvent, PlayerState> {
     Emitter<PlayerState> emit,
   ) async {
     try {
+      _setupAudioPlayer(event.tracks);
       print(
           "Получено событие PlayTrack для трека: ${event.track.title}"); // Проверка
       // Если трека нет в плейлисте, добавляем
-      if (!_playlist.any((track) => track.id == event.track.id)) {
-        _playlist.add(event.track);
+      if (!event.tracks.any((track) => track.id == event.track.id)) {
+        event.tracks.add(event.track);
         print("Трек ${event.track.title} добавлен в плейлист");
       }
       _currentIndex =
-          _playlist.indexWhere((track) => track.id == event.track.id);
+          event.tracks.indexWhere((track) => track.id == event.track.id);
       print("Текущий индекс в плейлисте: $_currentIndex");
       if (_currentIndex == -1) {
         print("Ошибка: трек не найден в плейлисте!");
         return;
       }
 
-      emit(PlayerLoading(track: event.track));
+      emit(PlayerLoading(track: event.track, tracks: event.tracks));
 
       final streamUrl = await repository.getStreamUrl(event.track.id);
       emit(PlayerPlaying(event.track,
+          tracks: event.tracks,
           position: audioPlayer.position,
           duration: audioPlayer.duration ?? Duration.zero));
 
       await audioPlayer.setUrl(streamUrl);
+      print("Статус плеера перед воспроизведением: ${audioPlayer.playerState}");
 
       await audioPlayer.play();
+
+      print(
+          "Статус плеера после попытки воспроизведения: ${audioPlayer.playerState}");
     } catch (e) {
       emit(PlayerError(e.toString()));
     }
@@ -151,6 +168,7 @@ class PlayerBloc extends Bloc<PlayerEvent, PlayerState> {
           event.track,
           position: audioPlayer.position,
           duration: audioPlayer.duration ?? Duration.zero,
+          tracks: (state as PlayerPlaying).tracks,
         ));
       }
     }
@@ -166,6 +184,7 @@ class PlayerBloc extends Bloc<PlayerEvent, PlayerState> {
 
       emit(PlayerPlaying(
         currentTrack,
+        tracks: event.tracks,
         position: audioPlayer.position,
         duration: audioPlayer.duration ?? Duration.zero,
       ));
@@ -180,6 +199,7 @@ class PlayerBloc extends Bloc<PlayerEvent, PlayerState> {
       final currentState = state as PlayerPlaying;
       emit(PlayerPlaying(
         currentState.track,
+        tracks: currentState.tracks,
         position: event.position,
         duration: currentState.duration,
       ));
@@ -197,9 +217,10 @@ class PlayerBloc extends Bloc<PlayerEvent, PlayerState> {
     NextTrack event,
     Emitter<PlayerState> emit,
   ) async {
-    if (_playlist.isNotEmpty) {
-      _currentIndex = (_currentIndex + 1) % _playlist.length;
-      await _onPlayTrack(PlayTrack(_playlist[_currentIndex]), emit);
+    if (event.tracks.isNotEmpty) {
+      _currentIndex = (_currentIndex + 1) % event.tracks.length;
+      await _onPlayTrack(
+          PlayTrack(event.tracks[_currentIndex], event.tracks), emit);
     }
   }
 
@@ -207,9 +228,11 @@ class PlayerBloc extends Bloc<PlayerEvent, PlayerState> {
     PreviousTrack event,
     Emitter<PlayerState> emit,
   ) async {
-    if (_playlist.isNotEmpty) {
-      _currentIndex = (_currentIndex - 1 + _playlist.length) % _playlist.length;
-      await _onPlayTrack(PlayTrack(_playlist[_currentIndex]), emit);
+    if (event.tracks.isNotEmpty) {
+      _currentIndex =
+          (_currentIndex - 1 + event.tracks.length) % event.tracks.length;
+      await _onPlayTrack(
+          PlayTrack(event.tracks[_currentIndex], event.tracks), emit);
     }
   }
 
@@ -242,6 +265,7 @@ class PlayerBloc extends Bloc<PlayerEvent, PlayerState> {
           final updatedTrack = currentState.track
               .copyWith(isFavorite: !currentState.track.isFavorite);
           emit(PlayerPlaying(updatedTrack,
+              tracks: currentState.tracks,
               position: currentState.position,
               duration: currentState.duration));
         }

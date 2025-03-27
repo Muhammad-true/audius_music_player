@@ -12,7 +12,8 @@ class SearchTracks extends PlayerEvent {
 
 class PlayTrack extends PlayerEvent {
   final TrackModel track;
-  PlayTrack(this.track);
+  final List<TrackModel> tracks;
+  PlayTrack(this.track, this.tracks);
 }
 
 class PauseTrack extends PlayerEvent {
@@ -20,11 +21,20 @@ class PauseTrack extends PlayerEvent {
   PauseTrack({required this.track});
 }
 
-class ResumeTrack extends PlayerEvent {}
+class ResumeTrack extends PlayerEvent {
+  final List<TrackModel> tracks;
+  ResumeTrack({required this.tracks});
+}
 
-class NextTrack extends PlayerEvent {}
+class NextTrack extends PlayerEvent {
+  final List<TrackModel> tracks;
+  NextTrack({required this.tracks});
+}
 
-class PreviousTrack extends PlayerEvent {}
+class PreviousTrack extends PlayerEvent {
+  final List<TrackModel> tracks;
+  PreviousTrack({required this.tracks});
+}
 
 class SeekTo extends PlayerEvent {
   final Duration position;

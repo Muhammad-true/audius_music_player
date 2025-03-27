@@ -5,7 +5,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 class PlayerPage extends StatelessWidget {
-  const PlayerPage({super.key});
+  final List<TrackModel> tracks;
+  const PlayerPage({Key? key, required this.tracks}) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
@@ -45,6 +46,7 @@ class PlayerPage extends StatelessWidget {
             final position = trackState.position;
             final duration = trackState.duration;
             final isPlaying = state is PlayerPlaying;
+            final tracks = trackState.tracks;
             return Scaffold(
               backgroundColor: Theme.of(context).scaffoldBackgroundColor,
               body: SafeArea(
@@ -58,7 +60,7 @@ class PlayerPage extends StatelessWidget {
                           _buildArtwork(track),
                           _buildTrackInfo(track),
                           _buildProgressBar(context, position, duration),
-                          _buildControls(context, isPlaying, track),
+                          _buildControls(context, isPlaying, track, tracks),
                           _buildAdditionalControls(context, track),
                         ],
                       ),
@@ -197,7 +199,8 @@ class PlayerPage extends StatelessWidget {
     }
   }
 
-  Widget _buildControls(BuildContext context, bool isPlaying, TrackModel trak) {
+  Widget _buildControls(BuildContext context, bool isPlaying, TrackModel trak,
+      List<TrackModel> tracks) {
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
@@ -206,7 +209,7 @@ class PlayerPage extends StatelessWidget {
             icon: const Icon(Icons.skip_previous),
             iconSize: 40,
             onPressed: () {
-              context.read<PlayerBloc>().add(PreviousTrack());
+              context.read<PlayerBloc>().add(PreviousTrack(tracks: tracks));
             }),
         Container(
           width: 70,
@@ -217,9 +220,9 @@ class PlayerPage extends StatelessWidget {
             icon: Icon(isPlaying ? Icons.pause : Icons.play_arrow,
                 size: 40, color: Colors.white),
             onPressed: () {
-              context
-                  .read<PlayerBloc>()
-                  .add(isPlaying ? PauseTrack(track: trak) : ResumeTrack());
+              context.read<PlayerBloc>().add(isPlaying
+                  ? PauseTrack(track: trak)
+                  : ResumeTrack(tracks: tracks));
             },
           ),
         ),
@@ -227,7 +230,7 @@ class PlayerPage extends StatelessWidget {
             icon: const Icon(Icons.skip_next),
             iconSize: 40,
             onPressed: () {
-              context.read<PlayerBloc>().add(NextTrack());
+              context.read<PlayerBloc>().add(NextTrack(tracks: tracks));
             }),
         IconButton(icon: const Icon(Icons.repeat), onPressed: () {}),
       ],
