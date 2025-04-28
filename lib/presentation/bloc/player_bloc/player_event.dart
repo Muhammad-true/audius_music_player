@@ -3,8 +3,6 @@ part of 'player_bloc.dart';
 // События для управления плеером
 abstract class PlayerEvent {}
 
-class LoadTrendingTracks extends PlayerEvent {}
-
 class SearchTracks extends PlayerEvent {
   final String query;
   SearchTracks(this.query);
@@ -56,3 +54,7 @@ class PlayerStateChanged extends PlayerEvent {
 
   PlayerStateChanged(this.isPlaying);
 }
+
+class ToggleRepeat extends PlayerEvent {}
+
+class ToggleShuffle extends PlayerEvent {}

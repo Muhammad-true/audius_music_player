@@ -1,5 +1,5 @@
 import 'package:audius_music_player/data/models/track_model.dart';
-import 'package:audius_music_player/data/repositories/audius_repository.dart';
+import 'package:audius_music_player/data/repositories/jamendoRepositor.dart';
 import 'package:audius_music_player/data/services/storage_service.dart';
 import 'package:bloc/bloc.dart';
 import 'package:meta/meta.dart';
@@ -9,7 +9,7 @@ part 'favorites_state.dart';
 
 class FavoritesBloc extends Bloc<FavoritesEvent, FavoritesState> {
   final StorageService storageService;
-  final AudiusRepository repository;
+  final JamendoRepository repository;
 
   FavoritesBloc({required this.storageService, required this.repository})
       : super(FavoritesInitial()) {
@@ -22,7 +22,6 @@ class FavoritesBloc extends Bloc<FavoritesEvent, FavoritesState> {
   ) async {
     emit(FavoritesLoading());
     final favorites = await storageService.getFavoriteTracks();
-    print('Favorites: $favorites');
     final track = await getFavoriteTracksWithDetails(favorites);
     emit(FavoritesLoaded(track));
   }
@@ -30,13 +29,21 @@ class FavoritesBloc extends Bloc<FavoritesEvent, FavoritesState> {
   // Получение списка избранных треков
   Future<List<TrackModel>> getFavoriteTracksWithDetails(
       Set<String> favoriteIds) async {
-    List<TrackModel> favoriteTracks = [];
-    for (var trackId in favoriteIds) {
-      // Запрашиваем полные данные о треке по его ID
-      TrackModel track = await repository.getTrackDetails(trackId);
-      favoriteTracks.add(track);
-    }
+    List<TrackModel> favoriteTracks = await Future.wait(
+      favoriteIds.map((trackId) async {
+        try {
+          final track = await repository.getTrackDetails(trackId);
+          return track.copyWith(
+              isFavorite: true); // Ensure this returns TrackModel
+        } catch (e) {
+          return TrackModel.empty(); // Return an empty TrackModel
+        }
+      }),
+    );
 
-    return favoriteTracks;
+    // Filter null values if any requests failed
+    return favoriteTracks
+        .whereType<TrackModel>()
+        .toList(); // Ensure this is List<TrackModel>
   }
 }

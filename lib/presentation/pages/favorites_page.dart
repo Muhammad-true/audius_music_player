@@ -1,11 +1,15 @@
 import 'package:audius_music_player/presentation/bloc/favorites_bloc.dart/bloc/favorites_bloc.dart';
 import 'package:audius_music_player/presentation/bloc/player_bloc/player_bloc.dart'
     as player_bloc;
-import 'package:audius_music_player/presentation/pages/player_page.dart';
+import 'package:audius_music_player/router/router.dart';
+import 'package:auto_route/auto_route.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
+@RoutePage()
 class FavoritesPage extends StatefulWidget {
+  const FavoritesPage({super.key});
+
   @override
   _FavoritesPageState createState() => _FavoritesPageState();
 }
@@ -13,7 +17,6 @@ class FavoritesPage extends StatefulWidget {
 class _FavoritesPageState extends State<FavoritesPage> {
   @override
   void initState() {
-    // TODO: implement initState
     super.initState();
     context.read<FavoritesBloc>().add(LoadFavorites());
   }
@@ -21,16 +24,16 @@ class _FavoritesPageState extends State<FavoritesPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text("Избранное")),
+      appBar: AppBar(title: const Text("Избранное")),
       body: BlocBuilder<FavoritesBloc, FavoritesState>(
         builder: (context, state) {
           if (state is FavoritesLoading) {
-            return Center(child: CircularProgressIndicator());
+            return const Center(child: CircularProgressIndicator());
           } else if (state is FavoritesLoaded) {
             final tracks = state.favorites;
 
             if (tracks.isEmpty) {
-              return Center(child: Text("Нет избранных треков"));
+              return const Center(child: Text("Нет избранных треков"));
             }
 
             return ListView.builder(
@@ -42,25 +45,21 @@ class _FavoritesPageState extends State<FavoritesPage> {
                     context
                         .read<player_bloc.PlayerBloc>()
                         .add(player_bloc.PlayTrack(track, tracks));
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => PlayerPage(tracks: tracks),
-                      ),
-                    );
+                    AutoRouter.of(context)
+                        .push(PlayerRoute(track: track, tracks: tracks));
                   },
                   title: Text(track.title),
                   subtitle: Text(track.artistName),
                   leading: Image.network(track.coverArt),
                   trailing: IconButton(
-                    icon: Icon(Icons.delete, color: Colors.red),
+                    icon: const Icon(Icons.favorite, color: Colors.red),
                     onPressed: () {},
                   ),
                 );
               },
             );
           } else {
-            return Center(child: Text("Ошибка загрузки"));
+            return const Center(child: Text("Ошибка загрузки"));
           }
         },
       ),

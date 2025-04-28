@@ -1,4 +1,3 @@
-// Модель трека, которая будет использоваться для работы с API Audius
 class TrackModel {
   final String id;
   final String title;
@@ -18,17 +17,28 @@ class TrackModel {
     this.isFavorite = false,
   });
 
+  // Static method to create an empty TrackModel
+  static TrackModel empty() {
+    return TrackModel(
+      id: '',
+      title: '',
+      artistName: '',
+      coverArt: '',
+      audioUrl: '',
+      duration: 0,
+      isFavorite: false,
+    );
+  }
+
   // Преобразование JSON в модель
   factory TrackModel.fromJson(Map<String, dynamic> json) {
-    final artwork = json['artwork'] ?? {};
-    final user = json['user'] ?? {};
-
     return TrackModel(
-      id: json['id']?.toString() ?? '',
-      title: json['title'] ?? '',
-      artistName: user['name'] ?? '',
-      coverArt: artwork['480x480'] ?? artwork['150x150'] ?? '',
-      audioUrl: json['stream_url'] ?? '',
+      id: json['id'].toString(),
+      title: json['name'] ?? '',
+      artistName: json['artist_name'] ?? '',
+      coverArt: json['album_image'] ?? '',
+      audioUrl: json['audio'] ??
+          '', // В Jamendo это может быть URL для предварительного прослушивания
       duration: json['duration'] ?? 0,
       isFavorite: false,
     );

@@ -4,14 +4,12 @@ abstract class SearchState {}
 
 class SearchInitial extends SearchState {}
 
-class SearchLoading extends SearchState {
-  final TrackModel track;
-  SearchLoading(this.track);
-}
+class SearchLoading extends SearchState {}
 
-class SearchSuccess extends SearchState {
+class SearchLoaded extends SearchState {
   final List<TrackModel> tracks;
-  SearchSuccess(this.tracks);
+  final List<TrackModel> tracksDownloadedWeek;
+  SearchLoaded(this.tracks, this.tracksDownloadedWeek);
 }
 
 class SearchError extends SearchState {

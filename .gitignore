@@ -1,3 +1,4 @@
+.env
 *.log
 .dart_tool/
 .idea/

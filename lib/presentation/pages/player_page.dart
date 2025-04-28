@@ -1,21 +1,21 @@
 import 'package:audius_music_player/data/models/track_model.dart';
 import 'package:audius_music_player/presentation/bloc/player_bloc/player_bloc.dart';
+import 'package:auto_route/auto_route.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
+@RoutePage()
 class PlayerPage extends StatelessWidget {
+  final TrackModel track;
   final List<TrackModel> tracks;
-  const PlayerPage({Key? key, required this.tracks}) : super(key: key);
+  const PlayerPage({super.key, required this.track, required this.tracks});
 
   @override
   Widget build(BuildContext context) {
-    return WillPopScope(
-      onWillPop: () async {
-        Navigator.pop(context);
-        return false;
-      },
-      child: BlocConsumer<PlayerBloc, PlayerState>(
+    context.read<PlayerBloc>().add(PlayTrack(track, tracks));
+    return Scaffold(
+      body: BlocConsumer<PlayerBloc, PlayerState>(
         listener: (context, state) {
           if (state is PlayerError) {
             ScaffoldMessenger.of(context).showSnackBar(
@@ -60,7 +60,8 @@ class PlayerPage extends StatelessWidget {
                           _buildArtwork(track),
                           _buildTrackInfo(track),
                           _buildProgressBar(context, position, duration),
-                          _buildControls(context, isPlaying, track, tracks),
+                          _buildControls(context, isPlaying, track, tracks,
+                              state.isRepeat, trackState.isShuffle),
                           _buildAdditionalControls(context, track),
                         ],
                       ),
@@ -71,9 +72,8 @@ class PlayerPage extends StatelessWidget {
             );
           }
 
-          return Scaffold(
-            appBar: _buildAppBar(context),
-            body: const Center(child: Text('No track selected')),
+          return Container(
+            child: Center(child: Text('No track selected')),
           );
         },
       ),
@@ -83,9 +83,7 @@ class PlayerPage extends StatelessWidget {
   PreferredSizeWidget _buildAppBar(BuildContext context) {
     return AppBar(
       leading: IconButton(
-        icon: const Icon(Icons.keyboard_arrow_down),
-        onPressed: () => Navigator.pop(context),
-      ),
+          icon: const Icon(Icons.keyboard_arrow_down), onPressed: () {}),
       backgroundColor: Colors.transparent,
       elevation: 0,
     );
@@ -200,11 +198,18 @@ class PlayerPage extends StatelessWidget {
   }
 
   Widget _buildControls(BuildContext context, bool isPlaying, TrackModel trak,
-      List<TrackModel> tracks) {
+      List<TrackModel> tracks, bool repaet, bool isShuffle) {
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
-        IconButton(icon: const Icon(Icons.shuffle), onPressed: () {}),
+        IconButton(
+          icon: Icon(
+            !isShuffle ? Icons.redo : Icons.shuffle,
+          ),
+          onPressed: () {
+            context.read<PlayerBloc>().add(ToggleShuffle());
+          },
+        ),
         IconButton(
             icon: const Icon(Icons.skip_previous),
             iconSize: 40,
@@ -232,7 +237,11 @@ class PlayerPage extends StatelessWidget {
             onPressed: () {
               context.read<PlayerBloc>().add(NextTrack(tracks: tracks));
             }),
-        IconButton(icon: const Icon(Icons.repeat), onPressed: () {}),
+        IconButton(
+            icon: Icon(!repaet ? Icons.repeat : Icons.repeat_one),
+            onPressed: () {
+              context.read<PlayerBloc>().add(ToggleRepeat());
+            }),
       ],
     );
   }
@@ -259,7 +268,7 @@ class PlayerPage extends StatelessWidget {
             context.read<PlayerBloc>().add(ToggleFavorite(track));
           },
         ),
-        IconButton(icon: const Icon(Icons.playlist_add), onPressed: () {}),
+        IconButton(icon: const Icon(Icons.download), onPressed: () {}),
         IconButton(icon: const Icon(Icons.share), onPressed: () {}),
       ],
     );

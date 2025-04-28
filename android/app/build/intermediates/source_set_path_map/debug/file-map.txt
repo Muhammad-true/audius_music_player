@@ -1,0 +1,7 @@
+com.example.audius_music_player.app-pngs-0 D:\project_flutter\audius_music_player\android\app\build\generated\res\pngs\debug
+com.example.audius_music_player.app-resValues-1 D:\project_flutter\audius_music_player\android\app\build\generated\res\resValues\debug
+com.example.audius_music_player.app-packageDebugResources-2 D:\project_flutter\audius_music_player\android\app\build\intermediates\incremental\debug\packageDebugResources\merged.dir
+com.example.audius_music_player.app-packageDebugResources-3 D:\project_flutter\audius_music_player\android\app\build\intermediates\incremental\debug\packageDebugResources\stripped.dir
+com.example.audius_music_player.app-merged_res-4 D:\project_flutter\audius_music_player\android\app\build\intermediates\merged_res\debug
+com.example.audius_music_player.app-debug-5 D:\project_flutter\audius_music_player\android\app\src\debug\res
+com.example.audius_music_player.app-main-6 D:\project_flutter\audius_music_player\android\app\src\main\res

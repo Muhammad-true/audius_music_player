@@ -7,7 +7,7 @@ class PlaylistWidget extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Padding(
+        const Padding(
           padding: EdgeInsets.all(16),
           child: Text(
             'Your Playlists',
@@ -21,7 +21,7 @@ class PlaylistWidget extends StatelessWidget {
           height: 180,
           child: ListView.builder(
             scrollDirection: Axis.horizontal,
-            padding: EdgeInsets.symmetric(horizontal: 16),
+            padding: const EdgeInsets.symmetric(horizontal: 16),
             itemBuilder: (context, index) => _buildPlaylistCard(),
           ),
         ),
@@ -32,7 +32,7 @@ class PlaylistWidget extends StatelessWidget {
   Widget _buildPlaylistCard() {
     return Container(
       width: 140,
-      margin: EdgeInsets.only(right: 16),
+      margin: const EdgeInsets.only(right: 16),
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(12),
         color: Colors.grey[200],
@@ -41,7 +41,7 @@ class PlaylistWidget extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           ClipRRect(
-            borderRadius: BorderRadius.vertical(top: Radius.circular(12)),
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(12)),
             child: AspectRatio(
               aspectRatio: 1,
               child: Image.network(
@@ -50,7 +50,7 @@ class PlaylistWidget extends StatelessWidget {
               ),
             ),
           ),
-          Padding(
+          const Padding(
             padding: EdgeInsets.all(8),
             child: Text(
               'Playlist Name',
