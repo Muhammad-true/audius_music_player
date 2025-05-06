@@ -1,5 +1,5 @@
-import 'package:audius_music_player/presentation/bloc/favorites_bloc.dart/bloc/favorites_bloc.dart';
-import 'package:audius_music_player/presentation/bloc/player_bloc/player_bloc.dart'
+import 'package:audius_music_player/presentation/bloc/favorites.dart/favorites_bloc.dart';
+import 'package:audius_music_player/presentation/bloc/player/player_bloc.dart'
     as player_bloc;
 import 'package:audius_music_player/router/router.dart';
 import 'package:auto_route/auto_route.dart';

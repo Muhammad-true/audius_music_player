@@ -37,6 +37,7 @@ class PlayerBloc extends Bloc<PlayerEvent, PlayerState> {
     on<PlayerStateChanged>(_onPlayerStateChanged);
     on<ToggleRepeat>(_onToggleRepeat);
     on<ToggleShuffle>(_onToggleShuffle);
+    on<PlayerStopped>(_playerStoped);
   }
 
   void _setupAudioPlayer(List<TrackModel> tracks) {
@@ -73,15 +74,16 @@ class PlayerBloc extends Bloc<PlayerEvent, PlayerState> {
   ) async {
     try {
       _setupAudioPlayer(event.tracks);
-
       _currentIndex =
           event.tracks.indexWhere((track) => track.id == event.track.id);
-      if (_currentIndex == -1) {
-        return;
-      }
+      if (_currentIndex == -1) return;
 
       emit(PlayerLoading(track: event.track, tracks: event.tracks));
-      await audioPlayer.setUrl(event.track.audioUrl);
+
+      final stream = await repository.getStreamUrl(event.track.id);
+
+      await audioPlayer.setUrl(stream);
+      audioPlayer.play();
 
       emit(PlayerPlaying(
         event.track,
@@ -92,7 +94,6 @@ class PlayerBloc extends Bloc<PlayerEvent, PlayerState> {
         isShuffle: _isShuffle,
       ));
 
-      await audioPlayer.play();
       isclicked = false;
     } catch (e) {
       emit(PlayerError(e.toString()));
@@ -171,6 +172,7 @@ class PlayerBloc extends Bloc<PlayerEvent, PlayerState> {
     NextTrack event,
     Emitter<PlayerState> emit,
   ) async {
+    audioPlayer.stop();
     if (event.tracks.isNotEmpty) {
       if (_isShuffle) {
         final random = event.tracks.toList()..shuffle();
@@ -275,5 +277,11 @@ class PlayerBloc extends Bloc<PlayerEvent, PlayerState> {
     await _playerStateSubscription?.cancel();
     await audioPlayer.dispose();
     return super.close();
+  }
+
+  FutureOr<void> _playerStoped(
+      PlayerStopped event, Emitter<PlayerState> emit) async {
+    await audioPlayer.stop(); // остановка плеера
+    emit(PlayerInitial());
   }
 }

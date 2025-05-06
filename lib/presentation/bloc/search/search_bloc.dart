@@ -33,7 +33,7 @@ class SearchBloc extends Bloc<SearchEvent, SearchState> {
           (index) =>
               tracks[index].copyWith(isFavorite: favoriteStatuses[index]));
 
-      final tracksDownloadMonth = await repository.getDownloadsTracksMonth();
+      final tracksDownloadMonth = await repository.getTopTracks();
       final favoriteStatusesMonth = await Future.wait(
         tracksDownloadMonth
             .map((track) => storageService.isTrackFavorite(track.id)),

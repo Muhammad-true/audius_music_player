@@ -1,7 +1,10 @@
 import 'package:audius_music_player/data/models/track_model.dart';
-import 'package:audius_music_player/presentation/pages/favorites_page.dart';
-import 'package:audius_music_player/presentation/pages/player_page.dart';
-import 'package:audius_music_player/presentation/pages/search_page.dart';
+import 'package:audius_music_player/presentation/pages/account_page.dart';
+import 'package:audius_music_player/presentation/pages/app/view/home_page.dart';
+import 'package:audius_music_player/presentation/pages/app/view/splash_page.dart';
+import 'package:audius_music_player/presentation/pages/favorites/view/favorites_page.dart';
+import 'package:audius_music_player/presentation/pages/player/view/player_page.dart';
+import 'package:audius_music_player/presentation/pages/search/view/search_page.dart';
 import 'package:auto_route/auto_route.dart';
 import 'package:flutter/material.dart';
 
@@ -14,8 +17,15 @@ class AppRouter extends RootStackRouter {
 
   @override
   List<AutoRoute> get routes => [
-        AutoRoute(page: SearchRoute.page, initial: true),
-        AutoRoute(page: PlayerRoute.page),
-        AutoRoute(page: FavoritesRoute.page)
+        AutoRoute(
+          page: HomeRoute.page,
+          path: '/',
+          children: [
+            AutoRoute(page: SearchRoute.page, path: 'search'),
+            AutoRoute(page: FavoritesRoute.page, path: 'favorites'),
+            AutoRoute(page: AccountRoute.page, path: 'account'),
+          ],
+        ),
+        AutoRoute(page: PlayerRoute.page, path: '/player'),
       ];
 }

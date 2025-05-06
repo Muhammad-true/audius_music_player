@@ -58,3 +58,5 @@ class PlayerStateChanged extends PlayerEvent {
 class ToggleRepeat extends PlayerEvent {}
 
 class ToggleShuffle extends PlayerEvent {}
+
+class PlayerStopped extends PlayerEvent {}

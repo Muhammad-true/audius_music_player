@@ -1,7 +1,7 @@
 import 'dart:async';
 
 import 'package:audius_music_player/data/models/track_model.dart';
-import 'package:audius_music_player/presentation/bloc/search_bloc/search_bloc.dart'
+import 'package:audius_music_player/presentation/bloc/search/search_bloc.dart'
     as search_bloc;
 import 'package:audius_music_player/router/router.dart';
 import 'package:auto_route/auto_route.dart';
@@ -71,32 +71,15 @@ class _SearchPageState extends State<SearchPage> {
   Widget _buildHeader() {
     return Container(
       padding: const EdgeInsets.all(16),
-      child: Row(
+      child: const Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          IconButton(
-            icon: const Icon(Icons.person),
-            onPressed: () {},
-          ),
           const Text(
-            'Барои Mehrona',
+            'Steto-найти ритм',
             style: TextStyle(
               fontSize: 24,
               fontWeight: FontWeight.bold,
             ),
-          ),
-          Row(
-            children: [
-              IconButton(
-                  icon: const Icon(Icons.favorite),
-                  onPressed: () {
-                    AutoRouter.of(context).push(const FavoritesRoute());
-                  }),
-              IconButton(
-                icon: const Icon(Icons.playlist_play),
-                onPressed: () {},
-              ),
-            ],
           ),
         ],
       ),

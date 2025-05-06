@@ -4,138 +4,132 @@ import '../models/track_model.dart';
 
 class JamendoRepository {
   final Dio _dio;
-  String? _clientId;
 
-  JamendoRepository() : _dio = Dio() {
-    _dio.interceptors.add(LogInterceptor(
-      requestBody: true,
-      responseBody: true,
-      error: true,
+  // Приватный конструктор
+  JamendoRepository._(this._dio);
+
+  /// Асинхронная фабрика для создания репозитория с рабочим discovery-узлом
+  static Future<JamendoRepository> create() async {
+    final discoveryUrl = await _getDiscoveryNode();
+
+    final dio = Dio(BaseOptions(
+      baseUrl: '$discoveryUrl/v1',
+      connectTimeout: const Duration(seconds: 10),
+      receiveTimeout: const Duration(seconds: 10),
     ));
+
+    return JamendoRepository._(dio);
   }
 
-  // Инициализация с использованием API-ключа
-  Future<void> initialize(String clientId) async {
-    _clientId = clientId;
+  /// Получение актуального discovery-узла от Audius
+  static Future<String> _getDiscoveryNode() async {
     try {
-      final response = await _dio.get(
-        'https://api.jamendo.com/v3.0/tracks/top',
-        queryParameters: {'client_id': _clientId, 'limit': 1},
-      );
-      if (response.statusCode == 200) return response.data;
+      final response = await Dio().get('https://api.audius.co');
+      final data = response.data['data'];
+
+      if (data != null && data is List && data.isNotEmpty) {
+        return data.first.toString();
+      } else {
+        throw Exception('Не удалось получить discovery-узел Audius');
+      }
     } catch (e) {
-      throw '';
+      throw Exception('Ошибка при подключении к api.audius.co: $e');
     }
   }
 
-  // Получение топовых треков неделя
-  Future<List<TrackModel>> getTopTracks() async {
-    if (_clientId == null) {
-      throw Exception('Client ID is not initialized');
-    }
-
-    try {
-      final response = await _dio.get(
-        'https://api.jamendo.com/v3.0/tracks',
-        queryParameters: {'client_id': _clientId, 'order': 'popularity_week'},
-      );
-
-      final List<dynamic> data = response.data['results'];
-
-      return data.map((json) => TrackModel.fromJson(json)).toList();
-    } catch (e) {
-      throw Exception('Failed to load top tracks: $e');
-    }
-  }
-
-  // Получение топовых треков неделя
-  Future<List<TrackModel>> getDownloadsTracksMonth() async {
-    if (_clientId == null) {
-      throw Exception('Client ID is not initialized');
-    }
-
-    try {
-      final response = await _dio.get(
-        'https://api.jamendo.com/v3.0/tracks',
-        queryParameters: {'client_id': _clientId, 'order': 'downloads_month'},
-      );
-
-      final List<dynamic> data = response.data['results'];
-
-      return data.map((json) => TrackModel.fromJson(json)).toList();
-    } catch (e) {
-      throw Exception('Failed to load top tracks: $e');
-    }
-  }
-
-  // Поиск треков по запросу
+  /// Поиск треков по запросу
   Future<List<TrackModel>> searchTracks(String query) async {
-    if (_clientId == null) {
-      throw Exception('Client ID is not initialized');
-    }
-
     try {
       final response = await _dio.get(
-        'https://api.jamendo.com/v3.0/tracks',
-        queryParameters: {
-          'client_id': _clientId,
-          'limit': 20,
-          'search': query,
-        },
+        '/tracks/search',
+        queryParameters: {'query': query, 'limit': 20},
       );
 
-      final List<dynamic> data = response.data['results'];
-      return data.map((json) => TrackModel.fromJson(json)).toList();
-    } catch (e) {
-      throw Exception('Failed to search tracks: $e');
+      final data = response.data['data'] as List;
+
+      return data.map((trackJson) {
+        return TrackModel.fromJson({
+          'id': trackJson['id'],
+          'name': trackJson['title'],
+          'artist_name': trackJson['user']['name'],
+          'album_image': trackJson['artwork']?['1000x1000'] ?? '',
+          'audio': '', // Поток получаем отдельно
+          'duration': trackJson['duration'] ?? 0,
+        });
+      }).toList();
+    } on DioException catch (e) {
+      throw Exception('Ошибка при поиске треков: ${e.message}');
     }
   }
 
-  // Получение подробной информации о треке
-  Future<TrackModel> getTrackDetails(String trackId) async {
-    if (_clientId == null) {
-      throw Exception('Client ID is not initialized');
-    }
-
+  Future<List<TrackModel>> getTopTracks() async {
     try {
       final response = await _dio.get(
-        'https://api.jamendo.com/v3.0/tracks',
-        queryParameters: {'client_id': _clientId, 'id': trackId},
+        '/tracks/trending',
+        queryParameters: {'limit': 20},
       );
 
-      if (response.statusCode == 200) {
-        TrackModel.fromJson(response.data['results'][0]);
-        final List<dynamic> data = response.data['results'];
-        final List<TrackModel> data2 =
-            data.map((json) => TrackModel.fromJson(json)).toList();
-        return data2[0];
-      } else {
-        throw Exception('Failed to load track details');
-      }
-    } catch (e) {
-      throw Exception('Failed to get track details: $e');
+      final data = response.data['data'] as List;
+
+      return data.map((trackJson) {
+        return TrackModel.fromJson({
+          'id': trackJson['id'],
+          'name': trackJson['title'],
+          'artist_name': trackJson['user']['name'],
+          'album_image': trackJson['artwork']?['1000x1000'] ?? '',
+          'audio':
+              'https://discoveryprovider.audius.co/v1/${trackJson['track_cid']}?stream/app_name=audius_music_player',
+          'duration': trackJson['duration'] ?? 0,
+        });
+      }).toList();
+    } on DioException catch (e) {
+      throw Exception('Ошибка при получении топовых треков: ${e.message}');
     }
   }
 
-  // Получение stream URL (например, для воспроизведения)
+  /// Получение прямого URL на стрим трека
   Future<String> getStreamUrl(String trackId) async {
-    if (_clientId == null) {
-      throw Exception('Client ID is not initialized');
-    }
-
     try {
       final response = await _dio.get(
-        'https://api.jamendo.com/v3.0/tracks/$trackId',
-        queryParameters: {'client_id': _clientId},
+        '/tracks/$trackId/stream',
+        options: Options(
+          followRedirects: false,
+          validateStatus: (status) => status != null && status < 500,
+        ),
       );
 
-      if (response.statusCode == 200) {
-        return response.data['tracks'][0]['preview'];
+      if (response.statusCode == 302) {
+        final streamUrl = response.headers['location']?.first;
+        if (streamUrl != null) {
+          return streamUrl;
+        } else {
+          throw Exception('Stream URL не найден');
+        }
       } else {
-        throw Exception('Failed to get stream URL');
+        throw Exception('Неверный ответ сервера при запросе стрима');
       }
-    } catch (e) {
-      throw Exception('Failed to get stream URL: $e');
+    } on DioException catch (e) {
+      throw Exception('Ошибка при получении стрима: ${e.message}');
+    }
+  }
+
+  /// Получение деталей трека по ID
+  Future<TrackModel> getTrackDetails(String trackId) async {
+    try {
+      final response = await _dio.get('/tracks/$trackId');
+
+      final trackJson = response.data['data'];
+
+      return TrackModel.fromJson({
+        'id': trackJson['id'],
+        'name': trackJson['title'],
+        'artist_name': trackJson['user']['name'],
+        'album_image': trackJson['artwork']?['1000x1000'] ?? '',
+        'audio': '', // Поток получаем отдельно
+        'duration': trackJson['duration'] ?? 0,
+      });
+    } on DioException catch (e) {
+      throw Exception('Ошибка при получении деталей трека: ${e.message}');
     }
   }
 }

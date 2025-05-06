@@ -1,19 +1,30 @@
 import 'package:audius_music_player/data/models/track_model.dart';
-import 'package:audius_music_player/presentation/bloc/player_bloc/player_bloc.dart';
+import 'package:audius_music_player/presentation/bloc/player/player_bloc.dart';
 import 'package:auto_route/auto_route.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 @RoutePage()
-class PlayerPage extends StatelessWidget {
+class PlayerPage extends StatefulWidget {
   final TrackModel track;
   final List<TrackModel> tracks;
+
   const PlayerPage({super.key, required this.track, required this.tracks});
 
   @override
+  State<PlayerPage> createState() => _PlayerPageState();
+}
+
+class _PlayerPageState extends State<PlayerPage> {
+  @override
+  void initState() {
+    super.initState();
+    context.read<PlayerBloc>().add(PlayTrack(widget.track, widget.tracks));
+  }
+
+  @override
   Widget build(BuildContext context) {
-    context.read<PlayerBloc>().add(PlayTrack(track, tracks));
     return Scaffold(
       body: BlocConsumer<PlayerBloc, PlayerState>(
         listener: (context, state) {
@@ -24,19 +35,19 @@ class PlayerPage extends StatelessWidget {
           }
         },
         builder: (context, state) {
+          bool isLoading = false;
+          TrackModel? loadingTrack;
+
           if (state is PlayerLoading) {
-            return Scaffold(
-              appBar: _buildAppBar(context),
-              body: const Center(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    CircularProgressIndicator(),
-                    SizedBox(height: 16),
-                    Text('Loading track...'),
-                  ],
-                ),
-              ),
+            isLoading = true;
+            loadingTrack = state.track;
+            state = PlayerPlaying(
+              state.track,
+              tracks: state.tracks,
+              position: Duration.zero,
+              duration: Duration.zero,
+              isRepeat: false,
+              isShuffle: false,
             );
           }
 
@@ -47,6 +58,9 @@ class PlayerPage extends StatelessWidget {
             final duration = trackState.duration;
             final isPlaying = state is PlayerPlaying;
             final tracks = trackState.tracks;
+            final isCurrentTrackLoading =
+                isLoading && loadingTrack?.id == track.id;
+
             return Scaffold(
               backgroundColor: Theme.of(context).scaffoldBackgroundColor,
               body: SafeArea(
@@ -60,8 +74,14 @@ class PlayerPage extends StatelessWidget {
                           _buildArtwork(track),
                           _buildTrackInfo(track),
                           _buildProgressBar(context, position, duration),
-                          _buildControls(context, isPlaying, track, tracks,
-                              state.isRepeat, trackState.isShuffle),
+                          _buildControls(
+                              context,
+                              isPlaying,
+                              track,
+                              tracks,
+                              state.isRepeat,
+                              trackState.isShuffle,
+                              isCurrentTrackLoading),
                           _buildAdditionalControls(context, track),
                         ],
                       ),
@@ -72,9 +92,7 @@ class PlayerPage extends StatelessWidget {
             );
           }
 
-          return Container(
-            child: Center(child: Text('No track selected')),
-          );
+          return const Center(child: Text('No track selected'));
         },
       ),
     );
@@ -83,7 +101,9 @@ class PlayerPage extends StatelessWidget {
   PreferredSizeWidget _buildAppBar(BuildContext context) {
     return AppBar(
       leading: IconButton(
-          icon: const Icon(Icons.keyboard_arrow_down), onPressed: () {}),
+        icon: const Icon(Icons.keyboard_arrow_down),
+        onPressed: () => Navigator.pop(context),
+      ),
       backgroundColor: Colors.transparent,
       elevation: 0,
     );
@@ -105,9 +125,7 @@ class PlayerPage extends StatelessWidget {
           ),
           IconButton(
             icon: const Icon(Icons.more_vert),
-            onPressed: () {
-              // TODO: Show options menu
-            },
+            onPressed: () {},
           ),
         ],
       ),
@@ -197,15 +215,13 @@ class PlayerPage extends StatelessWidget {
     }
   }
 
-  Widget _buildControls(BuildContext context, bool isPlaying, TrackModel trak,
-      List<TrackModel> tracks, bool repaet, bool isShuffle) {
+  Widget _buildControls(BuildContext context, bool isPlaying, TrackModel track,
+      List<TrackModel> tracks, bool repeat, bool isShuffle, bool isLoading) {
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
         IconButton(
-          icon: Icon(
-            !isShuffle ? Icons.redo : Icons.shuffle,
-          ),
+          icon: Icon(!isShuffle ? Icons.redo : Icons.shuffle),
           onPressed: () {
             context.read<PlayerBloc>().add(ToggleShuffle());
           },
@@ -221,15 +237,23 @@ class PlayerPage extends StatelessWidget {
           height: 70,
           decoration:
               const BoxDecoration(shape: BoxShape.circle, color: Colors.blue),
-          child: IconButton(
-            icon: Icon(isPlaying ? Icons.pause : Icons.play_arrow,
-                size: 40, color: Colors.white),
-            onPressed: () {
-              context.read<PlayerBloc>().add(isPlaying
-                  ? PauseTrack(track: trak)
-                  : ResumeTrack(tracks: tracks));
-            },
-          ),
+          child: isLoading
+              ? const Padding(
+                  padding: EdgeInsets.all(20.0),
+                  child: CircularProgressIndicator(
+                    color: Colors.white,
+                    strokeWidth: 3,
+                  ),
+                )
+              : IconButton(
+                  icon: Icon(isPlaying ? Icons.pause : Icons.play_arrow,
+                      size: 40, color: Colors.white),
+                  onPressed: () {
+                    context.read<PlayerBloc>().add(isPlaying
+                        ? PauseTrack(track: track)
+                        : ResumeTrack(tracks: tracks));
+                  },
+                ),
         ),
         IconButton(
             icon: const Icon(Icons.skip_next),
@@ -238,7 +262,7 @@ class PlayerPage extends StatelessWidget {
               context.read<PlayerBloc>().add(NextTrack(tracks: tracks));
             }),
         IconButton(
-            icon: Icon(!repaet ? Icons.repeat : Icons.repeat_one),
+            icon: Icon(!repeat ? Icons.repeat : Icons.repeat_one),
             onPressed: () {
               context.read<PlayerBloc>().add(ToggleRepeat());
             }),

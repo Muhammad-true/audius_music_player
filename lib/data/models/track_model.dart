@@ -30,15 +30,13 @@ class TrackModel {
     );
   }
 
-  // Преобразование JSON в модель
   factory TrackModel.fromJson(Map<String, dynamic> json) {
     return TrackModel(
       id: json['id'].toString(),
       title: json['name'] ?? '',
       artistName: json['artist_name'] ?? '',
       coverArt: json['album_image'] ?? '',
-      audioUrl: json['audio'] ??
-          '', // В Jamendo это может быть URL для предварительного прослушивания
+      audioUrl: json['audio'] ?? '',
       duration: json['duration'] ?? 0,
       isFavorite: false,
     );

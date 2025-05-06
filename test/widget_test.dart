@@ -20,10 +20,10 @@ void main() async {
   testWidgets('Counter increments smoke test', (WidgetTester tester) async {
     final sharedPreferences = await SharedPreferences.getInstance();
     final storageService = StorageService(sharedPreferences);
-    final repository = JamendoRepository();
+    final repository = await JamendoRepository.create();
     final audioPlayer = AudioPlayer();
 
-    await repository.initialize(clientId);
+   // await repository.initialize(clientId);
 
     await tester.pumpWidget(MyApp(
       storageService: storageService,
