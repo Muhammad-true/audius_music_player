@@ -33,3 +33,17 @@ class DownloadPaused extends DownloadState {
 
   DownloadPaused({required this.downloads}) : super(downloads: []);
 }
+
+class DownloadLoading extends DownloadState {
+  DownloadLoading({required super.downloads});
+}
+
+class DownloadLoaded extends DownloadState {
+  final List<TrackModel> downloadedTracks;
+  DownloadLoaded(this.downloadedTracks) : super(downloads: []);
+}
+
+class DownloadError extends DownloadState {
+  final String message;
+  DownloadError(this.message) : super(downloads: []);
+}

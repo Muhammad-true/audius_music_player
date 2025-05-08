@@ -1,3 +1,4 @@
+import 'package:audius_music_player/data/models/download_track.dart';
 import 'package:audius_music_player/data/models/track_model.dart';
 import 'package:audius_music_player/presentation/bloc/download/bloc/download_bloc.dart';
 import 'package:audius_music_player/presentation/bloc/player/player_bloc.dart';
@@ -294,25 +295,55 @@ class _PlayerPageState extends State<PlayerPage> {
           },
         ),
         if (track.canDownload)
-          IconButton(
-            icon: const Icon(Icons.download),
-            onPressed: () {
-              context.read<DownloadBloc>().add(
-                    StartDownload(
-                      track: track,
-                      url: track.id,
-                      filename: track.title,
-                    ),
+          BlocBuilder<DownloadBloc, DownloadState>(
+            builder: (context, state) {
+              final isDownloading = state is DownloadInProgress &&
+                  state.downloads.any((d) =>
+                      d.track.id == track.id &&
+                      d.status == DownloadStatus.downloading);
+
+              final isCompleted = state is DownloadCompleted &&
+                  state.downloads.any((d) => d.track.id == track.id);
+
+              if (isDownloading) {
+                return const Padding(
+                  padding: EdgeInsets.all(8.0),
+                  child: SizedBox(
+                    width: 24,
+                    height: 24,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  ),
+                );
+              }
+
+              if (isCompleted) {
+                return const Icon(Icons.check_circle, color: Colors.green);
+              }
+
+              return IconButton(
+                icon: const Icon(Icons.download),
+                onPressed: () {
+                  context.read<DownloadBloc>().add(
+                        StartDownload(
+                          track: track,
+                          url: track.id,
+                          filename: track.title,
+                        ),
+                      );
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text("Загрузка началась")),
                   );
+                },
+              );
             },
           ),
-        IconButton(icon: const Icon(Icons.share), onPressed: () {}),
       ],
     );
   }
 
   String _formatDuration(Duration duration) {
-    String twoDigits(int n) => n.toString().padLeft(2, '0');
-    return '${twoDigits(duration.inMinutes.remainder(60))}:${twoDigits(duration.inSeconds.remainder(60))}';
+    final minutes = duration.inMinutes;
+    final seconds = duration.inSeconds % 60;
+    return '${minutes.toString().padLeft(2, '0')}:${seconds.toString().padLeft(2, '0')}';
   }
 }

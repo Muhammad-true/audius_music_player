@@ -34,3 +34,11 @@ class CancelDownload extends DownloadEvent {
 
   CancelDownload({required this.track});
 }
+
+class LoadDownloadedTracks extends DownloadEvent {}
+
+class DeleteDownloadedTrack extends DownloadEvent {
+  final TrackModel track;
+
+  DeleteDownloadedTrack({required this.track});
+}

@@ -1,8 +1,10 @@
+import 'dart:convert';
 import 'dart:io';
 
 import 'package:dio/dio.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:permission_handler/permission_handler.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../models/track_model.dart';
 
@@ -57,7 +59,7 @@ class JamendoRepository {
           'audio': '',
           'duration': trackJson['duration'] ?? 0,
           'is_streamable': trackJson['is_streamable'],
-          'can_download': trackJson['download']['is_downloadable'] ?? false,
+          'can_download': trackJson['is_downloadable'] ?? false,
         });
       }).toList();
     } on DioException catch (e) {
@@ -136,33 +138,74 @@ class JamendoRepository {
     }
   }
 
-  Future<void> downloadTrack({
-    required String streamUrl,
-    required String fileName,
+  Future<void> downloadFullTrack({
+    required TrackModel track,
     required void Function(double progress) onProgress,
   }) async {
     try {
       final status = await Permission.storage.request();
       if (!status.isGranted) {
-        throw Exception('Нет разришения на доступ к хранилищу');
+        throw Exception('Нет разрешения на доступ к хранилищу');
       }
+
+      // === 1. Скачиваем аудиофайл ===
       final downloadsDir = Directory('/storage/emulated/0/Download');
       if (!await downloadsDir.exists()) {
         await downloadsDir.create(recursive: true);
       }
-      final filePath = '${downloadsDir.path}/$fileName.mp3';
+      final audioPath = '${downloadsDir.path}/${track.title}.mp3';
 
       await _dio.download(
-        streamUrl,
-        filePath,
+        track.audioUrl,
+        audioPath,
         onReceiveProgress: (received, total) {
-          if (total != -1) {
-            onProgress(received / total);
-          }
+          if (total != -1) onProgress(received / total);
         },
       );
+
+      // === 2. Скачиваем изображение (внутреннее хранилище) ===
+      final imageDir = await getApplicationDocumentsDirectory();
+      final imagePath = '${imageDir.path}/${track.title}.jpg';
+
+      await _dio.download(
+        track.coverArt,
+        imagePath,
+        options: Options(
+          receiveTimeout: const Duration(seconds: 20),
+          responseType: ResponseType.bytes,
+        ),
+      );
+
+      final localTrack = track.copyWith(
+        audioUrl: audioPath,
+        coverArt: imagePath,
+      );
+      // === 3. Сохраняем в SharedPreferences ===
+      await _saveDownloadedTrack(localTrack);
     } catch (e) {
       rethrow;
+    }
+  }
+
+  Future<void> _saveDownloadedTrack(TrackModel track) async {
+    final prefs = await SharedPreferences.getInstance();
+    final downloaded = prefs.getStringList('download_tracks') ?? [];
+
+    // Проверяем, что этот трек ещё не был добавлен
+    final trackJson = json.encode({
+      'id': track.id,
+      'title': track.title,
+      'artistName': track.artistName,
+      'coverArt': track.coverArt,
+      'audioUrl': track.audioUrl,
+      'duration': track.duration,
+      'isFavorite': track.isFavorite,
+      'canDownload': track.canDownload,
+    });
+
+    if (!downloaded.contains(trackJson)) {
+      downloaded.add(trackJson);
+      await prefs.setStringList('download_tracks', downloaded);
     }
   }
 
@@ -173,33 +216,11 @@ class JamendoRepository {
     for (final track in tracks) {
       if (track.canDownload) {
         final streamUrl = await getStreamUrl(track.id);
-        await downloadTrack(
-          streamUrl: streamUrl,
-          fileName: '${track.artistName} - ${track.title}',
+        await downloadFullTrack(
+          track: track,
           onProgress: (progress) => onProgress(track.id, progress),
         );
       }
-    }
-  }
-
-  Future<void> downloadImage({
-    required String imageUrl,
-    required String fileName,
-  }) async {
-    try {
-      final dir = await getApplicationDocumentsDirectory();
-      final filePath = '${dir.path}/$fileName.jpg';
-
-      await _dio.download(
-        imageUrl,
-        filePath,
-        options: Options(
-          receiveTimeout: const Duration(seconds: 20),
-          responseType: ResponseType.bytes,
-        ),
-      );
-    } catch (e) {
-      rethrow;
     }
   }
 }

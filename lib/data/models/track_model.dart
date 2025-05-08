@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 class TrackModel {
   final String id;
   final String title;
@@ -65,5 +67,26 @@ class TrackModel {
       isFavorite: isFavorite ?? this.isFavorite,
       canDownload: canDownload,
     );
+  }
+
+  // Метод для преобразования объекта TrackModel в Map (для JSON)
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'name': title,
+      'artist_name': artistName,
+      'album_image': coverArt,
+      'audio': audioUrl,
+      'duration': duration,
+      'is_streamable': canDownload,
+    };
+  }
+
+  // Метод для преобразования объекта TrackModel в строку JSON
+  String toJsonString() => jsonEncode(toJson());
+
+  // Метод для десериализации строки JSON обратно в объект TrackModel
+  static TrackModel fromJsonString(String jsonString) {
+    return TrackModel.fromJson(jsonDecode(jsonString));
   }
 }
