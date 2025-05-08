@@ -8,6 +8,8 @@ import 'package:audius_music_player/presentation/pages/search/view/search_page.d
 import 'package:auto_route/auto_route.dart';
 import 'package:flutter/material.dart';
 
+import '../presentation/pages/download/view/download_page.dart';
+
 // Нужно подключить `part`, чтобы сгенерировались маршруты
 part 'router.gr.dart';
 
@@ -23,6 +25,7 @@ class AppRouter extends RootStackRouter {
           children: [
             AutoRoute(page: SearchRoute.page, path: 'search'),
             AutoRoute(page: FavoritesRoute.page, path: 'favorites'),
+            AutoRoute(page: DownloadRoute.page, path: 'download'),
             AutoRoute(page: AccountRoute.page, path: 'account'),
           ],
         ),

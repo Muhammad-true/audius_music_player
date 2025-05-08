@@ -1,6 +1,7 @@
 import 'package:audius_music_player/core/theme/app_theme.dart';
 import 'package:audius_music_player/data/repositories/jamendoRepositor.dart';
 import 'package:audius_music_player/data/services/storage_service.dart';
+import 'package:audius_music_player/presentation/bloc/download/bloc/download_bloc.dart';
 import 'package:audius_music_player/presentation/bloc/favorites.dart/favorites_bloc.dart';
 import 'package:audius_music_player/presentation/bloc/player/player_bloc.dart';
 import 'package:audius_music_player/presentation/bloc/search/search_bloc.dart';
@@ -31,6 +32,7 @@ class MyApp extends StatelessWidget {
   final AudioPlayer audioPlayer;
 
   MyApp({
+    super.key,
     required this.storageService,
     required this.repository,
     required this.audioPlayer,
@@ -61,6 +63,8 @@ class MyApp extends StatelessWidget {
             storageService: storageService,
           ),
         ),
+        BlocProvider<DownloadBloc>(
+            create: (_) => DownloadBloc(repository: repository)),
       ],
       child: MaterialApp.router(
         title: 'Audius Music Player',

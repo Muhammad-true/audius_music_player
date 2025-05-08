@@ -1,4 +1,5 @@
 import 'package:audius_music_player/data/models/track_model.dart';
+import 'package:audius_music_player/presentation/bloc/download/bloc/download_bloc.dart';
 import 'package:audius_music_player/presentation/bloc/player/player_bloc.dart';
 import 'package:auto_route/auto_route.dart';
 import 'package:cached_network_image/cached_network_image.dart';
@@ -292,7 +293,19 @@ class _PlayerPageState extends State<PlayerPage> {
             context.read<PlayerBloc>().add(ToggleFavorite(track));
           },
         ),
-        IconButton(icon: const Icon(Icons.download), onPressed: () {}),
+        if (track.canDownload)
+          IconButton(
+            icon: const Icon(Icons.download),
+            onPressed: () {
+              context.read<DownloadBloc>().add(
+                    StartDownload(
+                      track: track,
+                      url: track.id,
+                      filename: track.title,
+                    ),
+                  );
+            },
+          ),
         IconButton(icon: const Icon(Icons.share), onPressed: () {}),
       ],
     );

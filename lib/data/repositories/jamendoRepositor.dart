@@ -1,27 +1,29 @@
+import 'dart:io';
+
 import 'package:dio/dio.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:permission_handler/permission_handler.dart';
 
 import '../models/track_model.dart';
 
 class JamendoRepository {
   final Dio _dio;
 
-  // Приватный конструктор
   JamendoRepository._(this._dio);
 
-  /// Асинхронная фабрика для создания репозитория с рабочим discovery-узлом
   static Future<JamendoRepository> create() async {
     final discoveryUrl = await _getDiscoveryNode();
 
     final dio = Dio(BaseOptions(
       baseUrl: '$discoveryUrl/v1',
       connectTimeout: const Duration(seconds: 10),
-      receiveTimeout: const Duration(seconds: 10),
+      receiveTimeout: const Duration(minutes: 2),
+      sendTimeout: const Duration(minutes: 1),
     ));
 
     return JamendoRepository._(dio);
   }
 
-  /// Получение актуального discovery-узла от Audius
   static Future<String> _getDiscoveryNode() async {
     try {
       final response = await Dio().get('https://api.audius.co');
@@ -37,7 +39,6 @@ class JamendoRepository {
     }
   }
 
-  /// Поиск треков по запросу
   Future<List<TrackModel>> searchTracks(String query) async {
     try {
       final response = await _dio.get(
@@ -53,8 +54,10 @@ class JamendoRepository {
           'name': trackJson['title'],
           'artist_name': trackJson['user']['name'],
           'album_image': trackJson['artwork']?['1000x1000'] ?? '',
-          'audio': '', // Поток получаем отдельно
+          'audio': '',
           'duration': trackJson['duration'] ?? 0,
+          'is_streamable': trackJson['is_streamable'],
+          'can_download': trackJson['download']['is_downloadable'] ?? false,
         });
       }).toList();
     } on DioException catch (e) {
@@ -77,9 +80,10 @@ class JamendoRepository {
           'name': trackJson['title'],
           'artist_name': trackJson['user']['name'],
           'album_image': trackJson['artwork']?['1000x1000'] ?? '',
-          'audio':
-              'https://discoveryprovider.audius.co/v1/${trackJson['track_cid']}?stream/app_name=audius_music_player',
+          'audio': '',
           'duration': trackJson['duration'] ?? 0,
+          'is_streamable': trackJson['is_streamable'],
+          'can_download': trackJson['is_streamable'] ?? false,
         });
       }).toList();
     } on DioException catch (e) {
@@ -87,7 +91,6 @@ class JamendoRepository {
     }
   }
 
-  /// Получение прямого URL на стрим трека
   Future<String> getStreamUrl(String trackId) async {
     try {
       final response = await _dio.get(
@@ -113,7 +116,6 @@ class JamendoRepository {
     }
   }
 
-  /// Получение деталей трека по ID
   Future<TrackModel> getTrackDetails(String trackId) async {
     try {
       final response = await _dio.get('/tracks/$trackId');
@@ -125,11 +127,79 @@ class JamendoRepository {
         'name': trackJson['title'],
         'artist_name': trackJson['user']['name'],
         'album_image': trackJson['artwork']?['1000x1000'] ?? '',
-        'audio': '', // Поток получаем отдельно
+        'audio': '',
         'duration': trackJson['duration'] ?? 0,
+        'can_download': trackJson['is_streamable'] ?? false,
       });
     } on DioException catch (e) {
       throw Exception('Ошибка при получении деталей трека: ${e.message}');
+    }
+  }
+
+  Future<void> downloadTrack({
+    required String streamUrl,
+    required String fileName,
+    required void Function(double progress) onProgress,
+  }) async {
+    try {
+      final status = await Permission.storage.request();
+      if (!status.isGranted) {
+        throw Exception('Нет разришения на доступ к хранилищу');
+      }
+      final downloadsDir = Directory('/storage/emulated/0/Download');
+      if (!await downloadsDir.exists()) {
+        await downloadsDir.create(recursive: true);
+      }
+      final filePath = '${downloadsDir.path}/$fileName.mp3';
+
+      await _dio.download(
+        streamUrl,
+        filePath,
+        onReceiveProgress: (received, total) {
+          if (total != -1) {
+            onProgress(received / total);
+          }
+        },
+      );
+    } catch (e) {
+      rethrow;
+    }
+  }
+
+  Future<void> downloadPlaylist({
+    required List<TrackModel> tracks,
+    required void Function(String trackId, double progress) onProgress,
+  }) async {
+    for (final track in tracks) {
+      if (track.canDownload) {
+        final streamUrl = await getStreamUrl(track.id);
+        await downloadTrack(
+          streamUrl: streamUrl,
+          fileName: '${track.artistName} - ${track.title}',
+          onProgress: (progress) => onProgress(track.id, progress),
+        );
+      }
+    }
+  }
+
+  Future<void> downloadImage({
+    required String imageUrl,
+    required String fileName,
+  }) async {
+    try {
+      final dir = await getApplicationDocumentsDirectory();
+      final filePath = '${dir.path}/$fileName.jpg';
+
+      await _dio.download(
+        imageUrl,
+        filePath,
+        options: Options(
+          receiveTimeout: const Duration(seconds: 20),
+          responseType: ResponseType.bytes,
+        ),
+      );
+    } catch (e) {
+      rethrow;
     }
   }
 }

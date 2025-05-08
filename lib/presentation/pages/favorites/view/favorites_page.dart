@@ -39,21 +39,46 @@ class _FavoritesPageState extends State<FavoritesPage> {
             return ListView.builder(
               itemCount: tracks.length,
               itemBuilder: (context, index) {
-                final track = tracks[index];
-                return ListTile(
-                  onTap: () {
+                final track = tracks[index]; // ← здесь ты получаешь track
+
+                return Dismissible(
+                  key: Key(track.id
+                      .toString()), // Убедись, что у track есть уникальный ID
+                  direction: DismissDirection.endToStart,
+                  onDismissed: (_) {
                     context
-                        .read<player_bloc.PlayerBloc>()
-                        .add(player_bloc.PlayTrack(track, tracks));
-                    AutoRouter.of(context)
-                        .push(PlayerRoute(track: track, tracks: tracks));
+                        .read<FavoritesBloc>()
+                        .add(RemoveFromFavorites(track));
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                          content: Text('${track.title} удалён из избранного')),
+                    );
                   },
-                  title: Text(track.title),
-                  subtitle: Text(track.artistName),
-                  leading: Image.network(track.coverArt),
-                  trailing: IconButton(
-                    icon: const Icon(Icons.favorite, color: Colors.red),
-                    onPressed: () {},
+                  background: Container(
+                    color: Colors.red,
+                    alignment: Alignment.centerRight,
+                    padding: const EdgeInsets.symmetric(horizontal: 20),
+                    child: const Icon(Icons.delete, color: Colors.white),
+                  ),
+                  child: ListTile(
+                    onTap: () {
+                      context
+                          .read<player_bloc.PlayerBloc>()
+                          .add(player_bloc.PlayTrack(track, tracks));
+                      AutoRouter.of(context)
+                          .push(PlayerRoute(track: track, tracks: tracks));
+                    },
+                    title: Text(track.title),
+                    subtitle: Text(track.artistName),
+                    leading: Image.network(track.coverArt),
+                    trailing: IconButton(
+                      icon: const Icon(Icons.favorite, color: Colors.red),
+                      onPressed: () {
+                        context
+                            .read<FavoritesBloc>()
+                            .add(RemoveFromFavorites(track));
+                      },
+                    ),
                   ),
                 );
               },

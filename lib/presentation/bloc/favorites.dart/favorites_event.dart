@@ -8,3 +8,9 @@ class ToggleFavorite extends FavoritesEvent {
   final TrackModel track;
   ToggleFavorite(this.track);
 }
+
+class RemoveFromFavorites extends FavoritesEvent {
+  final TrackModel track;
+
+  RemoveFromFavorites(this.track);
+}

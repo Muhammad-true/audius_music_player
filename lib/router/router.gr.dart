@@ -29,6 +29,25 @@ class AccountRoute extends PageRouteInfo<void> {
 }
 
 /// generated route for
+/// [DownloadPage]
+class DownloadRoute extends PageRouteInfo<void> {
+  const DownloadRoute({List<PageRouteInfo>? children})
+      : super(
+          DownloadRoute.name,
+          initialChildren: children,
+        );
+
+  static const String name = 'DownloadRoute';
+
+  static PageInfo page = PageInfo(
+    name,
+    builder: (data) {
+      return DownloadPage();
+    },
+  );
+}
+
+/// generated route for
 /// [FavoritesPage]
 class FavoritesRoute extends PageRouteInfo<void> {
   const FavoritesRoute({List<PageRouteInfo>? children})

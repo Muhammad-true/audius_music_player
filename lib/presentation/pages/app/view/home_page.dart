@@ -20,6 +20,7 @@ class _HomePageState extends State<HomePage> {
       routes: const [
         SearchRoute(),
         FavoritesRoute(),
+        DownloadRoute(),
         AccountRoute(),
       ],
       builder: (context, child) {
@@ -42,6 +43,10 @@ class _HomePageState extends State<HomePage> {
                   BottomNavigationBarItem(
                     icon: Icon(Icons.favorite),
                     label: 'Favorites',
+                  ),
+                  BottomNavigationBarItem(
+                    icon: Icon(Icons.download),
+                    label: 'Download',
                   ),
                   BottomNavigationBarItem(
                     icon: Icon(Icons.person),

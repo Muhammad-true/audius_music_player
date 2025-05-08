@@ -46,6 +46,9 @@ dependencies:
   get_it: ^8.0.3
   talker_flutter: ^4.6.3
   flutter_launcher_icons: ^0.14.3
+  path_provider: ^2.1.5
+  equatable: ^2.0.7
+  permission_handler: ^12.0.0+1
   
 
 dev_dependencies:

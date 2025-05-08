@@ -14,6 +14,7 @@ class FavoritesBloc extends Bloc<FavoritesEvent, FavoritesState> {
   FavoritesBloc({required this.storageService, required this.repository})
       : super(FavoritesInitial()) {
     on<LoadFavorites>(_onLoadFavorites);
+    on<RemoveFromFavorites>(_onRemoveFromFavorites);
   }
 
   Future<void> _onLoadFavorites(
@@ -45,5 +46,24 @@ class FavoritesBloc extends Bloc<FavoritesEvent, FavoritesState> {
     return favoriteTracks
         .whereType<TrackModel>()
         .toList(); // Ensure this is List<TrackModel>
+  }
+
+  //удалим трек от списка избранных
+  Future<void> _onRemoveFromFavorites(
+    RemoveFromFavorites event,
+    Emitter<FavoritesState> emit,
+  ) async {
+    if (state is FavoritesLoaded) {
+      final currentState = state as FavoritesLoaded;
+
+      // Удалить из storage
+      await storageService.removeFavoriteTrack(event.track.id);
+
+      // Обновить список без удалённого трека
+      final updatedTracks = List<TrackModel>.from(currentState.favorites)
+        ..removeWhere((track) => track.id == event.track.id);
+
+      emit(FavoritesLoaded(updatedTracks));
+    }
   }
 }
