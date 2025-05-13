@@ -1,15 +1,14 @@
 import 'package:audius_music_player/data/models/track_model.dart';
-import 'package:audius_music_player/data/repositories/jamendoRepositor.dart';
+import 'package:audius_music_player/data/repositories/audius_repositor.dart';
 import 'package:audius_music_player/data/services/storage_service.dart';
-import 'package:bloc/bloc.dart';
-import 'package:meta/meta.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 
 part 'favorites_event.dart';
 part 'favorites_state.dart';
 
 class FavoritesBloc extends Bloc<FavoritesEvent, FavoritesState> {
   final StorageService storageService;
-  final JamendoRepository repository;
+  final AudiusRepository repository;
 
   FavoritesBloc({required this.storageService, required this.repository})
       : super(FavoritesInitial()) {

@@ -100,17 +100,6 @@ class _PlayerPageState extends State<PlayerPage> {
     );
   }
 
-  PreferredSizeWidget _buildAppBar(BuildContext context) {
-    return AppBar(
-      leading: IconButton(
-        icon: const Icon(Icons.keyboard_arrow_down),
-        onPressed: () => Navigator.pop(context),
-      ),
-      backgroundColor: Colors.transparent,
-      elevation: 0,
-    );
-  }
-
   Widget _buildHeader(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.all(16),

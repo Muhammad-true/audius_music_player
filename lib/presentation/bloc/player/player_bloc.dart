@@ -4,14 +4,14 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:just_audio/just_audio.dart';
 
 import '../../../data/models/track_model.dart';
-import '../../../data/repositories/jamendoRepositor.dart';
+import '../../../data/repositories/audius_repositor.dart';
 import '../../../data/services/storage_service.dart';
 
 part 'player_event.dart';
 part 'player_state.dart';
 
 class PlayerBloc extends Bloc<PlayerEvent, PlayerState> {
-  final JamendoRepository repository;
+  final AudiusRepository repository;
   final AudioPlayer audioPlayer;
   final StorageService storageService;
 

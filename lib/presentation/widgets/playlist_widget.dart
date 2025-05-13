@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 
 // Виджет для отображения плейлистов
 class PlaylistWidget extends StatelessWidget {
+  const PlaylistWidget({super.key});
+
   @override
   Widget build(BuildContext context) {
     return Column(

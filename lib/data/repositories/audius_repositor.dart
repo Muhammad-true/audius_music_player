@@ -8,42 +8,47 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import '../models/track_model.dart';
 
-class JamendoRepository {
-  final Dio _dio;
+class AudiusRepository {
+  final Dio dio;
 
-  JamendoRepository._(this._dio);
+  AudiusRepository({required this.dio});
 
-  static Future<JamendoRepository> create() async {
+  static Future<AudiusRepository> create() async {
     final discoveryUrl = await _getDiscoveryNode();
 
+    if (!discoveryUrl.isSuccess) {
+      throw Exception(discoveryUrl.error);
+    }
+
     final dio = Dio(BaseOptions(
-      baseUrl: '$discoveryUrl/v1',
+      baseUrl: '${discoveryUrl.node}/v1',
       connectTimeout: const Duration(seconds: 10),
       receiveTimeout: const Duration(minutes: 2),
       sendTimeout: const Duration(minutes: 1),
     ));
 
-    return JamendoRepository._(dio);
+    return AudiusRepository(dio: dio);
   }
 
-  static Future<String> _getDiscoveryNode() async {
+  static Future<DiscoveryNodeResult> _getDiscoveryNode() async {
     try {
       final response = await Dio().get('https://api.audius.co');
       final data = response.data['data'];
 
       if (data != null && data is List && data.isNotEmpty) {
-        return data.first.toString();
+        return DiscoveryNodeResult.success(data.first.toString());
       } else {
-        throw Exception('Не удалось получить discovery-узел Audius');
+        return DiscoveryNodeResult.failure('Сервер вернул пустой список нод.');
       }
     } catch (e) {
-      throw Exception('Ошибка при подключении к api.audius.co: $e');
+      return DiscoveryNodeResult.failure(
+          'Ошибка подключения к Audius, проверьте интернет подключения');
     }
   }
 
   Future<List<TrackModel>> searchTracks(String query) async {
     try {
-      final response = await _dio.get(
+      final response = await dio.get(
         '/tracks/search',
         queryParameters: {'query': query, 'limit': 20},
       );
@@ -62,14 +67,14 @@ class JamendoRepository {
           'can_download': trackJson['is_downloadable'] ?? false,
         });
       }).toList();
-    } on DioException catch (e) {
+    } on DioError catch (e) {
       throw Exception('Ошибка при поиске треков: ${e.message}');
     }
   }
 
   Future<List<TrackModel>> getTopTracks() async {
     try {
-      final response = await _dio.get(
+      final response = await dio.get(
         '/tracks/trending',
         queryParameters: {'limit': 20},
       );
@@ -88,14 +93,14 @@ class JamendoRepository {
           'can_download': trackJson['is_streamable'] ?? false,
         });
       }).toList();
-    } on DioException catch (e) {
+    } on DioError catch (e) {
       throw Exception('Ошибка при получении топовых треков: ${e.message}');
     }
   }
 
   Future<String> getStreamUrl(String trackId) async {
     try {
-      final response = await _dio.get(
+      final response = await dio.get(
         '/tracks/$trackId/stream',
         options: Options(
           followRedirects: false,
@@ -113,14 +118,14 @@ class JamendoRepository {
       } else {
         throw Exception('Неверный ответ сервера при запросе стрима');
       }
-    } on DioException catch (e) {
+    } on DioError catch (e) {
       throw Exception('Ошибка при получении стрима: ${e.message}');
     }
   }
 
   Future<TrackModel> getTrackDetails(String trackId) async {
     try {
-      final response = await _dio.get('/tracks/$trackId');
+      final response = await dio.get('/tracks/$trackId');
 
       final trackJson = response.data['data'];
 
@@ -133,7 +138,7 @@ class JamendoRepository {
         'duration': trackJson['duration'] ?? 0,
         'can_download': trackJson['is_streamable'] ?? false,
       });
-    } on DioException catch (e) {
+    } on DioError catch (e) {
       throw Exception('Ошибка при получении деталей трека: ${e.message}');
     }
   }
@@ -155,7 +160,7 @@ class JamendoRepository {
       }
       final audioPath = '${downloadsDir.path}/${track.title}.mp3';
 
-      await _dio.download(
+      await dio.download(
         track.audioUrl,
         audioPath,
         onReceiveProgress: (received, total) {
@@ -167,7 +172,7 @@ class JamendoRepository {
       final imageDir = await getApplicationDocumentsDirectory();
       final imagePath = '${imageDir.path}/${track.title}.jpg';
 
-      await _dio.download(
+      await dio.download(
         track.coverArt,
         imagePath,
         options: Options(
@@ -215,7 +220,6 @@ class JamendoRepository {
   }) async {
     for (final track in tracks) {
       if (track.canDownload) {
-        final streamUrl = await getStreamUrl(track.id);
         await downloadFullTrack(
           track: track,
           onProgress: (progress) => onProgress(track.id, progress),
@@ -223,4 +227,14 @@ class JamendoRepository {
       }
     }
   }
+}
+
+class DiscoveryNodeResult {
+  final String? node;
+  final String? error;
+
+  DiscoveryNodeResult.success(this.node) : error = null;
+  DiscoveryNodeResult.failure(this.error) : node = null;
+
+  bool get isSuccess => node != null;
 }

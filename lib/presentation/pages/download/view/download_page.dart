@@ -78,9 +78,7 @@ class _DownloadPageState extends State<DownloadPage> {
                           ),
                           title: Text(track.title),
                           subtitle: Text(track.artistName),
-                          onTap: () {
-                            // TODO: Запустить плеер с локального файла
-                          },
+                          onTap: () {},
                         ),
                       );
                     },

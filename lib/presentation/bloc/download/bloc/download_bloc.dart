@@ -3,7 +3,7 @@ import 'dart:convert';
 
 import 'package:audius_music_player/data/models/download_track.dart';
 import 'package:audius_music_player/data/models/track_model.dart';
-import 'package:audius_music_player/data/repositories/jamendoRepositor.dart';
+import 'package:audius_music_player/data/repositories/audius_repositor.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -11,12 +11,13 @@ part 'download_event.dart';
 part 'download_state.dart';
 
 class DownloadBloc extends Bloc<DownloadEvent, DownloadState> {
-  final JamendoRepository repository;
+  final AudiusRepository repository;
   final List<DownloadTrack> _downloads = [];
   List<TrackModel> _completedTracks = [];
 
-  DownloadBloc({required this.repository})
-      : super(DownloadInitial(downloads: [])) {
+  DownloadBloc({
+    required this.repository,
+  }) : super(DownloadInitial(downloads: [])) {
     on<StartDownload>(_onStartDownload);
     on<UpdateProgress>(_onUpdateProgress);
     on<PauseDownload>(_onPauseDownload);

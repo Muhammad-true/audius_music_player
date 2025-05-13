@@ -1,20 +1,25 @@
 import 'package:audius_music_player/data/models/track_model.dart';
+import 'package:audius_music_player/data/repositories/audius_repositor.dart';
 import 'package:audius_music_player/data/services/storage_service.dart';
+import 'package:audius_music_player/presentation/cubit/app_mode_cubit.dart';
+import 'package:equatable/equatable.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-
-import '../../../data/repositories/jamendoRepositor.dart';
 
 part 'search_event.dart';
 part 'search_state.dart';
 
-// BLoC для управления поиском
 class SearchBloc extends Bloc<SearchEvent, SearchState> {
-  final JamendoRepository repository;
+  final AudiusRepository repository;
   final StorageService storageService;
+  final AppModeCubit appModeCubit;
+
   List<TrackModel> _playlist = [];
 
-  SearchBloc({required this.storageService, required this.repository})
-      : super(SearchInitial()) {
+  SearchBloc({
+    required this.repository,
+    required this.storageService,
+    required this.appModeCubit,
+  }) : super(SearchInitial()) {
     on<LoadTrendingTracks>(_onLoadTrendingTracks);
     on<SearchTracks>(_onSearchTracks);
     on<ClearSearch>(_onClearSearch);
@@ -23,48 +28,58 @@ class SearchBloc extends Bloc<SearchEvent, SearchState> {
   Future<void> _onLoadTrendingTracks(
       LoadTrendingTracks event, Emitter<SearchState> emit) async {
     emit(SearchLoading());
+
+    final isOnline = appModeCubit.state.isOnline;
+    if (!isOnline) {
+      emit(SearchError(
+          'Вы не можете использовать эту страницу в офлайн-режиме.'));
+      return;
+    }
+
     try {
-      final tracks = await repository.getTopTracks();
+      final trendingTracks = await repository.getTopTracks();
       final favoriteStatuses = await Future.wait(
-        tracks.map((track) => storageService.isTrackFavorite(track.id)),
+        trendingTracks.map((track) => storageService.isTrackFavorite(track.id)),
       );
-      final _playlist = List.generate(
-          tracks.length,
-          (index) =>
-              tracks[index].copyWith(isFavorite: favoriteStatuses[index]));
 
-      final tracksDownloadMonth = await repository.getTopTracks();
-      final favoriteStatusesMonth = await Future.wait(
-        tracksDownloadMonth
-            .map((track) => storageService.isTrackFavorite(track.id)),
+      final enrichedTrendingTracks = List.generate(
+        trendingTracks.length,
+        (index) =>
+            trendingTracks[index].copyWith(isFavorite: favoriteStatuses[index]),
       );
-      final _playlistMonth = List.generate(
-          tracksDownloadMonth.length,
-          (index) => tracksDownloadMonth[index]
-              .copyWith(isFavorite: favoriteStatusesMonth[index]));
 
-      emit(SearchLoaded(_playlist, _playlistMonth));
+      // Можно заменить эту часть, если есть другая логика для _playlistMonth
+      final topMonthTracks = enrichedTrendingTracks;
+
+      emit(SearchLoaded(enrichedTrendingTracks, topMonthTracks));
     } catch (e) {
       emit(SearchError(e.toString()));
     }
   }
 
   Future<void> _onSearchTracks(
-    SearchTracks event,
-    Emitter<SearchState> emit,
-  ) async {
+      SearchTracks event, Emitter<SearchState> emit) async {
     if (event.query.isEmpty) {
       emit(SearchInitial());
       return;
     }
 
     emit(SearchLoading());
+
+    final isOnline = appModeCubit.state.isOnline;
+    if (!isOnline) {
+      emit(SearchError('Вы не можете использовать поиск в офлайн-режиме.'));
+      return;
+    }
+
     try {
       final tracks = await repository.searchTracks(event.query);
-      _playlist = await Future.wait(tracks.map((track) async {
-        final isFavorite = await storageService.isTrackFavorite(track.id);
-        return track.copyWith(isFavorite: isFavorite);
-      }));
+      _playlist = await Future.wait(
+        tracks.map((track) async {
+          final isFavorite = await storageService.isTrackFavorite(track.id);
+          return track.copyWith(isFavorite: isFavorite);
+        }),
+      );
       emit(SearchLoaded(_playlist, List.empty()));
     } catch (e) {
       emit(SearchError(e.toString()));
