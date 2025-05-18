@@ -18,14 +18,14 @@ class DummyAudiusRepository implements AudiusRepository {
   }
 
   Future<String> getStreamUrl(String trackId) async {
-    throw Exception('Невозможно получить поток без подключения к интернету.');
+    throw 'Невозможно получить поток без подключения к интернету.';
   }
 
   Future<TrackModel> getTrackDetails(String trackId) async {
     throw Exception('Невозможно получить детали трека в офлайн-режиме.');
   }
 
-  Future<void> downloadFullTrack({
+  Future<TrackModel> downloadFullTrack({
     required TrackModel track,
     required void Function(double progress) onProgress,
   }) async {
@@ -37,5 +37,10 @@ class DummyAudiusRepository implements AudiusRepository {
     required void Function(String trackId, double progress) onProgress,
   }) async {
     throw Exception('Загрузка плейлиста недоступна в офлайн-режиме.');
+  }
+
+  @override
+  Future<List<TrackModel>> getUndergroundTrendingTracks() {
+    throw 'Загрузка плейлиста недоступна в офлайн-режиме.';
   }
 }

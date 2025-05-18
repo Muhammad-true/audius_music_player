@@ -16,6 +16,8 @@ class HomePage extends StatefulWidget {
 class _HomePageState extends State<HomePage> {
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
     return AutoTabsRouter(
       routes: const [
         SearchRoute(),
@@ -33,24 +35,33 @@ class _HomePageState extends State<HomePage> {
               bottomNavigationBar: BottomNavigationBar(
                 currentIndex: tabsRouter.activeIndex,
                 onTap: tabsRouter.setActiveIndex,
-                selectedItemColor: Colors.blue,
-                unselectedItemColor: Colors.grey,
+                selectedItemColor:
+                    theme.bottomNavigationBarTheme.selectedItemColor,
+                unselectedItemColor:
+                    theme.bottomNavigationBarTheme.unselectedItemColor,
+                backgroundColor: theme.bottomNavigationBarTheme.backgroundColor,
+                selectedLabelStyle:
+                    theme.bottomNavigationBarTheme.selectedLabelStyle,
+                unselectedLabelStyle:
+                    theme.bottomNavigationBarTheme.unselectedLabelStyle,
+                showUnselectedLabels:
+                    theme.bottomNavigationBarTheme.showUnselectedLabels ?? true,
                 items: const [
                   BottomNavigationBarItem(
                     icon: Icon(Icons.search),
-                    label: 'Search',
+                    label: 'Поиск',
                   ),
                   BottomNavigationBarItem(
                     icon: Icon(Icons.favorite),
-                    label: 'Favorites',
+                    label: 'Избранное',
                   ),
                   BottomNavigationBarItem(
                     icon: Icon(Icons.download),
-                    label: 'Download',
+                    label: 'Скачанные',
                   ),
                   BottomNavigationBarItem(
                     icon: Icon(Icons.person),
-                    label: 'Account',
+                    label: 'Профиль',
                   ),
                 ],
               ),

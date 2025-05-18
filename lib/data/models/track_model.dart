@@ -18,7 +18,7 @@ class TrackModel {
     required this.audioUrl,
     required this.duration,
     this.isFavorite = false,
-    this.canDownload = false,
+    this.canDownload = true,
   });
 
   // Static method to create an empty TrackModel
@@ -31,7 +31,7 @@ class TrackModel {
         audioUrl: '',
         duration: 0,
         isFavorite: false,
-        canDownload: false);
+        canDownload: true);
   }
 
   factory TrackModel.fromJson(Map<String, dynamic> json) {
@@ -43,8 +43,7 @@ class TrackModel {
       audioUrl: json['audio'] ?? '',
       duration: json['duration'] ?? 0,
       isFavorite: false,
-      canDownload: json['is_streamable'] != null &&
-          json['is_streamable'].toString().isNotEmpty,
+      canDownload: json['is_streamable'] ?? true,
     );
   }
 
@@ -56,6 +55,7 @@ class TrackModel {
     String? audioUrl,
     int? duration,
     bool? isFavorite,
+    bool? canDownload,
   }) {
     return TrackModel(
       id: id ?? this.id,
@@ -65,7 +65,7 @@ class TrackModel {
       audioUrl: audioUrl ?? this.audioUrl,
       duration: duration ?? this.duration,
       isFavorite: isFavorite ?? this.isFavorite,
-      canDownload: canDownload,
+      canDownload: canDownload ?? this.canDownload,
     );
   }
 
@@ -73,11 +73,12 @@ class TrackModel {
   Map<String, dynamic> toJson() {
     return {
       'id': id,
-      'name': title,
+      'title': title,
       'artist_name': artistName,
       'album_image': coverArt,
       'audio': audioUrl,
       'duration': duration,
+      'isFavorite': isFavorite,
       'is_streamable': canDownload,
     };
   }

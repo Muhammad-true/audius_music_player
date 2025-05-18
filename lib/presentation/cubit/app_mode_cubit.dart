@@ -1,30 +1,38 @@
+import 'dart:async';
+
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:equatable/equatable.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 class AppModeCubit extends Cubit<AppModeState> {
+  StreamSubscription<List<ConnectivityResult>>? _subscription;
+
   AppModeCubit() : super(const AppModeState(isOnline: true)) {
-    _checkConnectivity();
+    _checkInitialConnectivity();
+    _subscription = Connectivity().onConnectivityChanged.listen((results) {
+      final online = results.isNotEmpty &&
+          results.any((r) => r != ConnectivityResult.none);
+      emit(state.copyWith(isOnline: online));
+    });
   }
 
-  // Метод для проверки состояния подключения
-  Future<void> _checkConnectivity() async {
-    final connectivityResult = await (Connectivity().checkConnectivity());
-    if (connectivityResult == ConnectivityResult.none) {
-      emit(state.copyWith(isOnline: false)); // Оффлайн
-    } else {
-      emit(state.copyWith(isOnline: true)); // Онлайн
-    }
+  Future<void> _checkInitialConnectivity() async {
+    final results = await Connectivity().checkConnectivity();
+    final online =
+        results.isNotEmpty && results.any((r) => r != ConnectivityResult.none);
+    emit(state.copyWith(isOnline: online));
   }
 
-  // Изменить режим на онлайн
   void setOnline() => emit(state.copyWith(isOnline: true));
-
-  // Изменить режим на оффлайн
   void setOffline() => emit(state.copyWith(isOnline: false));
+
+  @override
+  Future<void> close() {
+    _subscription?.cancel();
+    return super.close();
+  }
 }
 
-// Состояние кубита
 class AppModeState extends Equatable {
   final bool isOnline;
 
@@ -33,7 +41,6 @@ class AppModeState extends Equatable {
   @override
   List<Object> get props => [isOnline];
 
-  // Копирование с изменением значения
   AppModeState copyWith({bool? isOnline}) {
     return AppModeState(isOnline: isOnline ?? this.isOnline);
   }

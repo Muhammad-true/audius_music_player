@@ -12,13 +12,16 @@ class SearchInitial extends SearchState {}
 class SearchLoading extends SearchState {}
 
 class SearchLoaded extends SearchState {
-  final List<TrackModel> playlist;
-  final List<TrackModel> playlistMonth;
+  final List<TrackModel> searchTracks;
+  final List<TrackModel> getTopTracks;
+  final List<TrackModel> getUndergroundTrendingTracks;
 
-  const SearchLoaded(this.playlist, this.playlistMonth);
+  const SearchLoaded(
+      this.searchTracks, this.getTopTracks, this.getUndergroundTrendingTracks);
 
   @override
-  List<Object?> get props => [playlist, playlistMonth];
+  List<Object?> get props =>
+      [searchTracks, getTopTracks, getUndergroundTrendingTracks];
 }
 
 class SearchError extends SearchState {

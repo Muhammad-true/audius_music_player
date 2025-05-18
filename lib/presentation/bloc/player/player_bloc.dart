@@ -80,9 +80,15 @@ class PlayerBloc extends Bloc<PlayerEvent, PlayerState> {
 
       emit(PlayerLoading(track: event.track, tracks: event.tracks));
 
-      final stream = await repository.getStreamUrl(event.track.id);
+      final localPath =
+          await storageService.getDownloadedTrackFileIfExists(event.track.id);
+      if (localPath != null) {
+        await audioPlayer.setFilePath(localPath);
+      } else {
+        final stream = await repository.getStreamUrl(event.track.id);
+        await audioPlayer.setUrl(stream);
+      }
 
-      await audioPlayer.setUrl(stream);
       audioPlayer.play();
 
       emit(PlayerPlaying(
@@ -96,7 +102,8 @@ class PlayerBloc extends Bloc<PlayerEvent, PlayerState> {
 
       isclicked = false;
     } catch (e) {
-      emit(PlayerError(e.toString()));
+      emit(
+          PlayerError('Нет интернета или файл трека не найдена на устройстве'));
     }
   }
 

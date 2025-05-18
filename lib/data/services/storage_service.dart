@@ -11,8 +11,7 @@ class StorageService {
 
   StorageService(this._prefs);
 
-  // ==== ИЗБРАННОЕ ====
-
+  //ИЗБРАННОЕ
   Future<void> saveFavoriteTrack(String trackId) async {
     final favorites = await getFavoriteTracks();
     favorites.add(trackId);
@@ -35,18 +34,26 @@ class StorageService {
     return favorites.contains(trackId);
   }
 
-  // ==== ЛОКАЛЬНЫЕ ФАЙЛЫ ====
-
+  // ЛОКАЛЬНЫЕ ФАЙЛЫ
   Future<String> getDownloadedTrackPath(String trackId) async {
     final dir = await getApplicationDocumentsDirectory();
     return '${dir.path}/$trackId.mp3';
+  }
+
+  Future<String?> getDownloadedTrackFileIfExists(String trackId) async {
+    final path = await getDownloadedTrackPath(trackId);
+    final file = File(path);
+    if (await file.exists()) {
+      return path;
+    }
+    return null;
   }
 
   Future<bool> fileExists(String path) async {
     return File(path).exists();
   }
 
-  // ==== СКАЧАННЫЕ ТРЕКИ ====
+  //СКАЧАННЫЕ ТРЕКИ
 
   Future<void> saveDownloadedTrack(TrackModel track) async {
     final downloaded = _prefs.getStringList('download_tracks') ?? [];
@@ -85,5 +92,14 @@ class StorageService {
         'canDownload': jsonMap['canDownload'],
       });
     }).toList();
+  }
+
+  Future<bool> isTrackDownloaded(String trackId) async {
+    final path = await getDownloadedTrackPath(trackId);
+    final file = File(path);
+    if (!await file.exists()) return false;
+
+    final downloadedTracks = await getDownloadedTracks();
+    return downloadedTracks.any((track) => track.id == trackId);
   }
 }

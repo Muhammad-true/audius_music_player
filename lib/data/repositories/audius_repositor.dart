@@ -1,9 +1,7 @@
 import 'dart:convert';
-import 'dart:io';
 
 import 'package:dio/dio.dart';
 import 'package:path_provider/path_provider.dart';
-import 'package:permission_handler/permission_handler.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../models/track_model.dart';
@@ -76,7 +74,7 @@ class AudiusRepository {
     try {
       final response = await dio.get(
         '/tracks/trending',
-        queryParameters: {'limit': 20},
+        queryParameters: {'limit': 30},
       );
 
       final data = response.data['data'] as List;
@@ -95,6 +93,32 @@ class AudiusRepository {
       }).toList();
     } on DioError catch (e) {
       throw Exception('Ошибка при получении топовых треков: ${e.message}');
+    }
+  }
+
+  Future<List<TrackModel>> getUndergroundTrendingTracks() async {
+    try {
+      final response = await dio.get(
+        '/tracks/trending/underground',
+        queryParameters: {'limit': 30},
+      );
+
+      final data = response.data['data'] as List;
+
+      return data.map((trackJson) {
+        return TrackModel.fromJson({
+          'id': trackJson['id'],
+          'name': trackJson['title'],
+          'artist_name': trackJson['user']['name'],
+          'album_image': trackJson['artwork']?['1000x1000'] ?? '',
+          'audio': '',
+          'duration': trackJson['duration'] ?? 0,
+          'is_streamable': trackJson['is_streamable'],
+          'can_download': trackJson['is_streamable'] ?? false,
+        });
+      }).toList();
+    } catch (e) {
+      throw Exception('Ошибка при получении топовых треков: ${e.toString()}');
     }
   }
 
@@ -136,60 +160,26 @@ class AudiusRepository {
         'album_image': trackJson['artwork']?['1000x1000'] ?? '',
         'audio': '',
         'duration': trackJson['duration'] ?? 0,
-        'can_download': trackJson['is_streamable'] ?? false,
+        'can_download': trackJson['is_streamable'],
       });
-    } on DioError catch (e) {
-      throw Exception('Ошибка при получении деталей трека: ${e.message}');
+    } catch (e) {
+      throw Exception('Ошибка при получении деталей трека: ${e.toString()}');
     }
   }
 
-  Future<void> downloadFullTrack({
+  Future<TrackModel> downloadFullTrack({
     required TrackModel track,
-    required void Function(double progress) onProgress,
+    required void Function(double p) onProgress,
   }) async {
-    try {
-      final status = await Permission.storage.request();
-      if (!status.isGranted) {
-        throw Exception('Нет разрешения на доступ к хранилищу');
-      }
+    final dir = await getApplicationDocumentsDirectory();
+    final audio = '${dir.path}/${track.id}.mp3';
+    final cover = '${dir.path}/${track.id}.jpg';
 
-      // === 1. Скачиваем аудиофайл ===
-      final downloadsDir = Directory('/storage/emulated/0/Download');
-      if (!await downloadsDir.exists()) {
-        await downloadsDir.create(recursive: true);
-      }
-      final audioPath = '${downloadsDir.path}/${track.title}.mp3';
+    await dio.download(track.audioUrl, audio,
+        onReceiveProgress: (r, t) => onProgress(t > 0 ? r / t : 0));
+    if (track.coverArt.isNotEmpty) await dio.download(track.coverArt, cover);
 
-      await dio.download(
-        track.audioUrl,
-        audioPath,
-        onReceiveProgress: (received, total) {
-          if (total != -1) onProgress(received / total);
-        },
-      );
-
-      // === 2. Скачиваем изображение (внутреннее хранилище) ===
-      final imageDir = await getApplicationDocumentsDirectory();
-      final imagePath = '${imageDir.path}/${track.title}.jpg';
-
-      await dio.download(
-        track.coverArt,
-        imagePath,
-        options: Options(
-          receiveTimeout: const Duration(seconds: 20),
-          responseType: ResponseType.bytes,
-        ),
-      );
-
-      final localTrack = track.copyWith(
-        audioUrl: audioPath,
-        coverArt: imagePath,
-      );
-      // === 3. Сохраняем в SharedPreferences ===
-      await _saveDownloadedTrack(localTrack);
-    } catch (e) {
-      rethrow;
-    }
+    return track.copyWith(audioUrl: audio, coverArt: cover);
   }
 
   Future<void> _saveDownloadedTrack(TrackModel track) async {
@@ -219,7 +209,7 @@ class AudiusRepository {
     required void Function(String trackId, double progress) onProgress,
   }) async {
     for (final track in tracks) {
-      if (track.canDownload) {
+      if (track.canDownload!) {
         await downloadFullTrack(
           track: track,
           onProgress: (progress) => onProgress(track.id, progress),

@@ -1,6 +1,7 @@
 import 'package:audius_music_player/data/models/track_model.dart';
 import 'package:audius_music_player/data/repositories/audius_repositor.dart';
 import 'package:audius_music_player/data/services/storage_service.dart';
+import 'package:audius_music_player/presentation/cubit/app_mode_cubit.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 part 'favorites_event.dart';
@@ -9,9 +10,13 @@ part 'favorites_state.dart';
 class FavoritesBloc extends Bloc<FavoritesEvent, FavoritesState> {
   final StorageService storageService;
   final AudiusRepository repository;
+  final AppModeCubit appModeCubit;
 
-  FavoritesBloc({required this.storageService, required this.repository})
-      : super(FavoritesInitial()) {
+  FavoritesBloc({
+    required this.storageService,
+    required this.repository,
+    required this.appModeCubit,
+  }) : super(FavoritesInitial()) {
     on<LoadFavorites>(_onLoadFavorites);
     on<RemoveFromFavorites>(_onRemoveFromFavorites);
   }
@@ -21,6 +26,12 @@ class FavoritesBloc extends Bloc<FavoritesEvent, FavoritesState> {
     Emitter<FavoritesState> emit,
   ) async {
     emit(FavoritesLoading());
+    final isOnline = appModeCubit.state.isOnline;
+    if (!isOnline) {
+      emit(FavoritesError(
+          message: 'Вы не можете увидеть избрание треки без интернета'));
+      return;
+    }
     final favorites = await storageService.getFavoriteTracks();
     final track = await getFavoriteTracksWithDetails(favorites);
     emit(FavoritesLoaded(track));
@@ -34,14 +45,13 @@ class FavoritesBloc extends Bloc<FavoritesEvent, FavoritesState> {
         try {
           final track = await repository.getTrackDetails(trackId);
           return track.copyWith(
-              isFavorite: true); // Ensure this returns TrackModel
+              isFavorite: true, canDownload: track.canDownload);
         } catch (e) {
-          return TrackModel.empty(); // Return an empty TrackModel
+          return TrackModel.empty();
         }
       }),
     );
 
-    // Filter null values if any requests failed
     return favoriteTracks
         .whereType<TrackModel>()
         .toList(); // Ensure this is List<TrackModel>

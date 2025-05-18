@@ -12,3 +12,9 @@ class FavoritesLoaded extends FavoritesState {
   FavoritesLoaded(this.favorites);
 // Getter to convert Set to List
 }
+
+class FavoritesError extends FavoritesState {
+  final String message;
+
+  FavoritesError({required this.message});
+}

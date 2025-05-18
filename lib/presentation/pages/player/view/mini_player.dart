@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:audius_music_player/presentation/bloc/player/player_bloc.dart';
 import 'package:audius_music_player/router/router.dart';
 import 'package:auto_route/auto_route.dart';
@@ -21,8 +23,12 @@ class MiniPlayer extends StatelessWidget {
         final trackState = state as dynamic;
         final track = trackState.track;
         final tracks = trackState.tracks;
-
         final isPlaying = state is PlayerPlaying;
+
+        // определяем тип изображения
+        final ImageProvider imageProvider = track.coverArt.startsWith('/data')
+            ? FileImage(File(track.coverArt))
+            : CachedNetworkImageProvider(track.coverArt);
 
         return GestureDetector(
           onTap: () => context.router.push(
@@ -34,8 +40,8 @@ class MiniPlayer extends StatelessWidget {
             color: Theme.of(context).cardColor,
             child: Row(
               children: [
-                CachedNetworkImage(
-                  imageUrl: track.coverArt,
+                Image(
+                  image: imageProvider,
                   width: 48,
                   height: 48,
                   fit: BoxFit.cover,

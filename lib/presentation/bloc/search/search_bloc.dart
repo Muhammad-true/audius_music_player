@@ -13,7 +13,7 @@ class SearchBloc extends Bloc<SearchEvent, SearchState> {
   final StorageService storageService;
   final AppModeCubit appModeCubit;
 
-  List<TrackModel> _playlist = [];
+  List<TrackModel> _searchTrack = [];
 
   SearchBloc({
     required this.repository,
@@ -31,7 +31,7 @@ class SearchBloc extends Bloc<SearchEvent, SearchState> {
 
     final isOnline = appModeCubit.state.isOnline;
     if (!isOnline) {
-      emit(SearchError(
+      emit(const SearchError(
           'Вы не можете использовать эту страницу в офлайн-режиме.'));
       return;
     }
@@ -49,9 +49,11 @@ class SearchBloc extends Bloc<SearchEvent, SearchState> {
       );
 
       // Можно заменить эту часть, если есть другая логика для _playlistMonth
-      final topMonthTracks = enrichedTrendingTracks;
+      final getUndergroundTrendingTracks =
+          await repository.getUndergroundTrendingTracks();
 
-      emit(SearchLoaded(enrichedTrendingTracks, topMonthTracks));
+      emit(SearchLoaded(
+          List.empty(), enrichedTrendingTracks, getUndergroundTrendingTracks));
     } catch (e) {
       emit(SearchError(e.toString()));
     }
@@ -68,19 +70,20 @@ class SearchBloc extends Bloc<SearchEvent, SearchState> {
 
     final isOnline = appModeCubit.state.isOnline;
     if (!isOnline) {
-      emit(SearchError('Вы не можете использовать поиск в офлайн-режиме.'));
+      emit(const SearchError(
+          'Вы не можете использовать поиск в офлайн-режиме.'));
       return;
     }
 
     try {
       final tracks = await repository.searchTracks(event.query);
-      _playlist = await Future.wait(
+      _searchTrack = await Future.wait(
         tracks.map((track) async {
           final isFavorite = await storageService.isTrackFavorite(track.id);
           return track.copyWith(isFavorite: isFavorite);
         }),
       );
-      emit(SearchLoaded(_playlist, List.empty()));
+      emit(SearchLoaded(_searchTrack, List.empty(), List.empty()));
     } catch (e) {
       emit(SearchError(e.toString()));
     }

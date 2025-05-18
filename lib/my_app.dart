@@ -78,7 +78,8 @@ class _MyAppState extends State<MyApp> {
         BlocProvider(create: (context) => DownloadBloc(repository: repository))
       ],
       child: MaterialApp.router(
-        title: 'Audius Music Player',
+        debugShowCheckedModeBanner: false,
+        title: 'Steto-найти ритм в Audius',
         theme: AppTheme.lightTheme,
         darkTheme: AppTheme.darkTheme,
         themeMode: ThemeMode.system,
